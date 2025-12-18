@@ -58,7 +58,7 @@ function buildImagePrompt(params: ImageGenerationParams): string {
 
   // Logo instructions if logo is provided
   const logoInstructions = logoImageBase64
-    ? `IMPORTANT: Subtly integrate the brand logo (shown in the logo reference image) into the background. The logo should be placed ${formData.logoPlacement || 'in the background'}, ${formData.logoFocus === 'subtle' ? 'very subtly and elegantly blended' : 'clearly visible but not overpowering'}${formData.logoLocation ? ` at ${formData.logoLocation}` : ''}. The logo should enhance the brand presence without distracting from the main product.`
+    ? `CRITICAL REQUIREMENT: You MUST include the brand logo (provided in the logo reference image) in the generated image. It is NOT optional. Place it ${formData.logoPlacement || 'on the background wall'} in a ${formData.logoFocus === 'subtle' ? 'tasteful, subtle manner' : 'clear, prominent position'}${formData.logoLocation ? ` at ${formData.logoLocation}` : ''}. The logo should look realistic, as if it's part of the physical environment (e.g., printed on signage, a wall decal, or prop branding).`
     : '';
 
   if (tabType === 'fashion') {
@@ -134,6 +134,14 @@ function getEnhancedBackground(background: string | undefined): string {
     'solid-dark': 'sophisticated solid dark backdrop',
     'pure-white': 'pristine pure white infinity cove',
     'off-white': 'warm off-white textured backdrop',
+    'luxury-penthouse': 'modern luxury penthouse interior with city view',
+    'urban-street': 'chic city street with blurred urban background',
+    'minimalist-studio': 'high-end minimalist architectural studio space',
+    'nature-beach': 'serene luxury beach setting with soft natural light',
+    'industrial-chic': 'modern industrial loft with brick and large windows',
+    'botanical-garden': 'lush botanical garden with filtered sunlight',
+    'abstract-geometric': 'abstract geometric architectural forms with light and shadow',
+    'warm-boho': 'warm bohemian interior with natural textures',
   };
 
   if (!background) return backgroundMap['studio'];
@@ -158,6 +166,11 @@ function getEnhancedLighting(lighting: string | undefined): string {
     'split': 'dramatic split lighting for mood',
     'golden': 'warm golden hour natural lighting',
     'studio': 'professional multi-light studio setup',
+    'golden-hour': 'warm, glowing golden hour sunlight',
+    'studio-high-key': 'bright, airy high-key studio lighting',
+    'moody-cinematic': 'atmospheric moody cinematic lighting with color contrast',
+    'neon-glow': 'modern neon accent lighting with cool tones',
+    'soft-daylight': 'clean, neutral soft daylight simulation',
   };
 
   if (!lighting) return lightingMap['softbox'];
