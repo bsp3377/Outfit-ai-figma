@@ -5,7 +5,7 @@
 
 const ENV_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY);
 // ⚠️ NOTE: This key was provided for the demo session. In production, use environment variables.
-const DEMO_API_KEY = 'AIzaSyB1r8cGfvmIQRW8HmIkzvo7zOLu7AzqbDQ';
+const DEMO_API_KEY = 'AIzaSyAVeb39fS4QvQkQXG-pFRHYkaD6rjGiaIc';
 const LOCAL_STORAGE_KEY = 'gemini_api_key';
 
 // Image generation model endpoint
