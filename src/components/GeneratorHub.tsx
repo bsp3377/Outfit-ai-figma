@@ -3,7 +3,7 @@ import { Upload, Wand2, Sparkles, Image as ImageIcon, Download, Heart, Trash2, X
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner@2.0.3';
 import { motion, AnimatePresence } from 'motion/react';
-import { generateWithGemini, getGeminiApiKey } from '../utils/gemini-api';
+import { generateImageWithGemini, getGeminiApiKey } from '../utils/gemini-api';
 
 type TabType = 'fashion' | 'jewellery' | 'flatlay';
 type GenerationStep = 'uploading' | 'prompt' | 'generating' | 'saving' | null;
@@ -250,119 +250,111 @@ export function GeneratorHub() {
         description: 'Please go to Account Settings to configure your AI key.',
         action: {
           label: 'Settings',
-          onClick: () => document.getElementById('account-tab-trigger')?.click() // Hacky navigation or just let them find it
+          onClick: () => document.getElementById('account-tab-trigger')?.click()
         }
       });
-      // We allow proceeding without key (using fallback) if that's desired, 
-      // but the user specifically asked for Gemini integration.
-      // However, the generateWithGemini function throws if no key.
-      // Let's guide them but not block if we have a fallback? 
-      // Actually, generateWithGemini throws. So we must catch it.
+      return;
     }
 
     setIsGenerating(true);
     setGenerationError(null);
     setGeneratedPrompt('');
-    
-    try {
-      // Step 1: Uploading
-      setGenerationStep('uploading');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Step 2: Creating prompt with Gemini AI
-      setGenerationStep('prompt');
-      
-      // Use manual product description if provided, otherwise fall back to uploaded file names
-      const productDescription = formData.productDescription.trim() 
-        ? formData.productDescription 
-        : uploadedFiles.map(f => f.name).join(', ');
-      
-      let aiPrompt = '';
-      let usedGeminiAI = false;
-      try {
-        // Call Gemini API to generate intelligent prompt
-        aiPrompt = await generateWithGemini({
-          productDescription,
-          tabType: activeTab,
-          formData,
-        });
-        console.log('✅ Generated AI Prompt:', aiPrompt);
-        setGeneratedPrompt(aiPrompt);
-        usedGeminiAI = true;
-        toast.success('AI prompt generated successfully', {
-          description: 'Using Gemini AI for enhanced generation'
-        });
-      } catch (error) {
-        console.warn('⚠️ Gemini API unavailable, using standard generation:', error);
-        
-        if (error instanceof Error && error.message.includes('API key')) {
-           toast.warning('Gemini API Key missing', {
-             description: 'Using basic generation. Add key in Settings for AI features.'
-           });
-        }
 
-        // Fallback to basic prompt if API fails - This is completely normal!
-        aiPrompt = `Generate a professional product photo for: ${productDescription}`;
-        setGeneratedPrompt(aiPrompt);
-        usedGeminiAI = false;
-        // Don't show warning toast - silent fallback for better UX
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Step 3: Generating images
-      setGenerationStep('generating');
-      
-      // Simulate processing time based on prompt complexity
-      const processingTime = usedGeminiAI ? 4000 : 2500;
-      await new Promise(resolve => setTimeout(resolve, processingTime));
-      
-      // Step 4: Saving
-      setGenerationStep('saving');
+    try {
+      // Step 1: Uploading/Processing
+      setGenerationStep('uploading');
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Add new generated images (1-4 images)
-      // Note: In production, these would be actual AI-generated images
-      const numImages = Math.floor(Math.random() * 3) + 2; // 2-4 images
-      const newImages: GeneratedImage[] = [];
-      
-      for (let i = 0; i < numImages; i++) {
-        newImages.push({
-          id: Date.now().toString() + i,
-          url: activeTab === 'fashion' 
-            ? 'https://images.unsplash.com/photo-1684836341651-4b38c1c04d67?w=800'
-            : activeTab === 'jewellery'
-            ? 'https://images.unsplash.com/photo-1708245917025-439f493d6571?w=800'
-            : 'https://images.unsplash.com/photo-1630331384146-a8b2a79a9558?w=800',
-          type: activeTab,
-          timestamp: new Date(),
-          liked: false,
-          autoSaved: true,
-        });
+      // Step 2: Creating prompt
+      setGenerationStep('prompt');
+
+      // Use manual product description if provided, otherwise fall back to uploaded file names
+      const productDescription = formData.productDescription.trim()
+        ? formData.productDescription
+        : uploadedFiles.map(f => f.name).join(', ');
+
+      // Extract base64 data from the first uploaded image
+      const firstImage = uploadedFiles[0];
+      let productImageBase64 = '';
+      let productImageMimeType = 'image/png';
+
+      if (firstImage.url.startsWith('data:')) {
+        // Extract mime type and base64 from data URL
+        const matches = firstImage.url.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches) {
+          productImageMimeType = matches[1];
+          productImageBase64 = matches[2];
+        }
       }
 
-      setGeneratedImages([...newImages, ...generatedImages]);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 3: Generating images with Gemini AI
+      setGenerationStep('generating');
+
+      console.log('🚀 Starting image generation with Gemini...');
+
+      const result = await generateImageWithGemini({
+        productDescription,
+        tabType: activeTab,
+        formData,
+        productImageBase64,
+        productImageMimeType,
+      });
+
+      console.log('✅ Image generated successfully!');
+      setGeneratedPrompt(result.promptUsed);
+
+      // Step 4: Saving
+      setGenerationStep('saving');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Create data URL from the generated image
+      const generatedImageUrl = `data:${result.mimeType};base64,${result.imageBase64}`;
+
+      // Add the generated image to the results
+      const newImage: GeneratedImage = {
+        id: Date.now().toString(),
+        url: generatedImageUrl,
+        type: activeTab,
+        timestamp: new Date(),
+        liked: false,
+        autoSaved: true,
+      };
+
+      setGeneratedImages([newImage, ...generatedImages]);
+      setSelectedResult(newImage); // Auto-select the new image
       setIsGenerating(false);
       setGenerationStep(null);
-      toast.success(`${numImages} image${numImages > 1 ? 's' : ''} generated successfully!`, {
-        description: usedGeminiAI 
-          ? `AI-enhanced prompt • ${numImages} credit${numImages > 1 ? 's' : ''} used`
-          : `${numImages} credit${numImages > 1 ? 's' : ''} used`,
+
+      toast.success('Image generated successfully!', {
+        description: 'AI-generated image ready • 1 credit used',
       });
+
     } catch (error) {
       console.error('Generation error:', error);
       setIsGenerating(false);
       setGenerationStep(null);
-      setGenerationError('Generation failed. Please check your inputs and try again.');
-      
-      if (error instanceof Error && error.message.includes('API key')) {
-          toast.error('Generation failed: Missing API Key', {
-            description: 'Please add your Gemini API Key in Settings.'
-          });
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setGenerationError(errorMessage);
+
+      if (errorMessage.includes('API key')) {
+        toast.error('Generation failed: API Key Issue', {
+          description: 'Please check your Gemini API Key in Settings.',
+        });
+      } else if (errorMessage.includes('rate limit')) {
+        toast.error('Rate limit exceeded', {
+          description: 'Please wait a moment and try again.',
+        });
+      } else if (errorMessage.includes('not available') || errorMessage.includes('not supported')) {
+        toast.error('Image generation not available', {
+          description: 'Your API key may not have access to image generation. Please check your Google AI Studio settings.',
+        });
       } else {
-          toast.error('Generation failed', {
-            description: 'Please try again or contact support'
-          });
+        toast.error('Generation failed', {
+          description: errorMessage || 'Please try again or contact support',
+        });
       }
     }
   };
@@ -649,24 +641,23 @@ export function GeneratorHub() {
                 <motion.button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-full whitespace-nowrap relative ${
-                    isActive
-                      ? 'text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}
+                  className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-full whitespace-nowrap relative ${isActive
+                    ? 'text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400'
+                    }`}
                   initial={{ opacity: 0, y: -10 }}
-                  animate={{ 
-                    opacity: 1, 
+                  animate={{
+                    opacity: 1,
                     y: 0,
                     scale: isActive ? 1 : 1
                   }}
-                  transition={{ 
+                  transition={{
                     delay: index * 0.1,
                     type: "spring",
                     stiffness: 300,
                     damping: 20
                   }}
-                  whileHover={{ 
+                  whileHover={{
                     scale: 1.02,
                     transition: { type: "spring", stiffness: 400, damping: 10 }
                   }}
@@ -676,32 +667,32 @@ export function GeneratorHub() {
                     <motion.div
                       layoutId="activeTab"
                       className="absolute inset-0 bg-purple-600 rounded-full"
-                      transition={{ 
-                        type: "spring", 
-                        stiffness: 500, 
-                        damping: 30 
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30
                       }}
                     />
                   )}
                   <div className="flex items-center gap-1.5 relative z-10">
                     <motion.div
-                      animate={{ 
+                      animate={{
                         rotate: isActive ? [0, -10, 10, -10, 0] : 0,
                         scale: isActive ? [1, 1.1, 1] : 1
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 0.5,
                         ease: "easeInOut"
                       }}
                     >
                       <Icon className="w-4 h-4" />
                     </motion.div>
-                    <motion.span 
+                    <motion.span
                       className="text-sm font-medium"
-                      animate={{ 
+                      animate={{
                         scale: isActive ? [1, 1.05, 1] : 1
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 0.3,
                         ease: "easeInOut"
                       }}
@@ -709,17 +700,16 @@ export function GeneratorHub() {
                       {tab.label}
                     </motion.span>
                   </div>
-                  <motion.span 
-                    className={`text-[11px] px-2 py-0.5 rounded-full font-medium relative z-10 ${
-                      isActive 
-                        ? 'bg-white/20 text-white/90' 
-                        : 'bg-gray-200/70 dark:bg-gray-800/70 text-gray-500 dark:text-gray-500'
-                    }`}
-                    animate={{ 
+                  <motion.span
+                    className={`text-[11px] px-2 py-0.5 rounded-full font-medium relative z-10 ${isActive
+                      ? 'bg-white/20 text-white/90'
+                      : 'bg-gray-200/70 dark:bg-gray-800/70 text-gray-500 dark:text-gray-500'
+                      }`}
+                    animate={{
                       y: isActive ? [0, -2, 0] : 0,
                       opacity: [1, 0.8, 1]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 0.4,
                       delay: 0.1,
                       ease: "easeInOut"
@@ -749,7 +739,7 @@ export function GeneratorHub() {
               {uploadedFiles.length}/5
             </span>
           </div>
-          
+
           {uploadedFiles.length === 0 ? (
             <label className="block">
               <input
@@ -781,9 +771,8 @@ export function GeneratorHub() {
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-move hover:border-purple-600 dark:hover:border-purple-600 transition-all ${
-                    draggedIndex === index ? 'opacity-50' : ''
-                  }`}
+                  className={`flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-move hover:border-purple-600 dark:hover:border-purple-600 transition-all ${draggedIndex === index ? 'opacity-50' : ''
+                    }`}
                 >
                   <GripVertical className="w-5 h-5 text-gray-400 flex-shrink-0" />
                   <img
@@ -888,9 +877,8 @@ export function GeneratorHub() {
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                     disabled={!!referenceImage}
-                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                      referenceImage ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
+                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -910,9 +898,8 @@ export function GeneratorHub() {
                     value={formData.age}
                     onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                     disabled={!!referenceImage}
-                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                      referenceImage ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
+                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
                   />
                 </div>
               </div>
@@ -923,9 +910,8 @@ export function GeneratorHub() {
                   value={formData.ethnicity}
                   onChange={(e) => setFormData({ ...formData, ethnicity: e.target.value })}
                   disabled={!!referenceImage}
-                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                    referenceImage ? 'opacity-60 cursor-not-allowed' : ''
-                  }`}
+                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
+                    }`}
                 >
                   <option value="American">American</option>
                   <option value="African">African</option>
@@ -947,9 +933,8 @@ export function GeneratorHub() {
                     value={formData.ethnicityDescription}
                     onChange={(e) => setFormData({ ...formData, ethnicityDescription: e.target.value })}
                     disabled={!!referenceImage}
-                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                      referenceImage ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
+                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
                   />
                 </div>
               )}
@@ -960,9 +945,8 @@ export function GeneratorHub() {
                   value={formData.hairstyle}
                   onChange={(e) => setFormData({ ...formData, hairstyle: e.target.value })}
                   disabled={!!referenceImage}
-                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                    referenceImage ? 'opacity-60 cursor-not-allowed' : ''
-                  }`}
+                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
+                    }`}
                 >
                   {hairstyleOptions.map(option => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -979,9 +963,8 @@ export function GeneratorHub() {
                     value={formData.hairstyleDescription}
                     onChange={(e) => setFormData({ ...formData, hairstyleDescription: e.target.value })}
                     disabled={!!referenceImage}
-                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                      referenceImage ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
+                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
                   />
                 </div>
               )}
@@ -1047,14 +1030,12 @@ export function GeneratorHub() {
                   <label className="block text-sm">Add Brand Logo</label>
                   <button
                     onClick={() => setFormData({ ...formData, logoEnabled: !formData.logoEnabled })}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      formData.logoEnabled ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
-                    }`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.logoEnabled ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
+                      }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.logoEnabled ? 'translate-x-6' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.logoEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                 </div>
@@ -1109,21 +1090,19 @@ export function GeneratorHub() {
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() => setFormData({ ...formData, logoPlacement: 'background' })}
-                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${
-                                  formData.logoPlacement === 'background'
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
-                                }`}
+                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${formData.logoPlacement === 'background'
+                                  ? 'bg-purple-600 text-white border-purple-600'
+                                  : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
+                                  }`}
                               >
                                 On Background
                               </button>
                               <button
                                 onClick={() => setFormData({ ...formData, logoPlacement: 'front' })}
-                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${
-                                  formData.logoPlacement === 'front'
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
-                                }`}
+                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${formData.logoPlacement === 'front'
+                                  ? 'bg-purple-600 text-white border-purple-600'
+                                  : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
+                                  }`}
                               >
                                 On Front
                               </button>
@@ -1135,21 +1114,19 @@ export function GeneratorHub() {
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() => setFormData({ ...formData, logoFocus: 'focused' })}
-                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${
-                                  formData.logoFocus === 'focused'
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
-                                }`}
+                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${formData.logoFocus === 'focused'
+                                  ? 'bg-purple-600 text-white border-purple-600'
+                                  : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
+                                  }`}
                               >
                                 Focused
                               </button>
                               <button
                                 onClick={() => setFormData({ ...formData, logoFocus: 'outoffocus' })}
-                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${
-                                  formData.logoFocus === 'outoffocus'
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
-                                }`}
+                                className={`px-3 py-2 text-xs rounded-lg border transition-all ${formData.logoFocus === 'outoffocus'
+                                  ? 'bg-purple-600 text-white border-purple-600'
+                                  : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600'
+                                  }`}
                               >
                                 Out of Focus
                               </button>
@@ -1307,7 +1284,7 @@ export function GeneratorHub() {
                   <option value="beauty-high-key">Beauty High-Key (Skincare)</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm mb-2">Framing</label>
                 <select
@@ -1444,7 +1421,7 @@ export function GeneratorHub() {
                 <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">
                   Upload a reference photo to inspire the creative style and composition
                 </p>
-                
+
                 {!inspiredTemplateFile ? (
                   <label className="block">
                     <input
@@ -1465,8 +1442,8 @@ export function GeneratorHub() {
                   </label>
                 ) : (
                   <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-                    <img 
-                      src={inspiredTemplateFile.url} 
+                    <img
+                      src={inspiredTemplateFile.url}
                       alt="Template"
                       className="w-16 h-16 object-cover rounded"
                     />
@@ -1746,11 +1723,10 @@ export function GeneratorHub() {
           <button
             onClick={handleGenerate}
             disabled={isGenerating || uploadedFiles.length === 0}
-            className={`flex-1 py-4 rounded-lg flex items-center justify-center gap-2 transition-all text-lg ${
-              isGenerating || uploadedFiles.length === 0
-                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
-                : 'bg-purple-600 hover:bg-purple-700 text-white hover:scale-105 hover:shadow-lg'
-            }`}
+            className={`flex-1 py-4 rounded-lg flex items-center justify-center gap-2 transition-all text-lg ${isGenerating || uploadedFiles.length === 0
+              ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
+              : 'bg-purple-600 hover:bg-purple-700 text-white hover:scale-105 hover:shadow-lg'
+              }`}
           >
             {isGenerating ? (
               <>
@@ -1780,7 +1756,7 @@ export function GeneratorHub() {
       <div className="w-full lg:w-1/2 space-y-6">
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
           <h3 className="mb-4">Generated Results</h3>
-          
+
           {/* Error State */}
           {generationError && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -1888,22 +1864,20 @@ export function GeneratorHub() {
               {generationSteps.map((step, index) => {
                 const isComplete = index < currentStepIndex;
                 const isCurrent = index === currentStepIndex;
-                
+
                 return (
                   <div
                     key={step.id}
-                    className={`flex items-center gap-3 ${
-                      isComplete || isCurrent ? 'opacity-100' : 'opacity-40'
-                    }`}
+                    className={`flex items-center gap-3 ${isComplete || isCurrent ? 'opacity-100' : 'opacity-40'
+                      }`}
                   >
                     <div
-                      className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
-                        isComplete
-                          ? 'bg-green-500'
-                          : isCurrent
+                      className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${isComplete
+                        ? 'bg-green-500'
+                        : isCurrent
                           ? 'bg-purple-600'
                           : 'bg-gray-300 dark:bg-gray-700'
-                      }`}
+                        }`}
                     >
                       {isComplete ? (
                         <Check className="w-4 h-4 text-white" />
@@ -1986,11 +1960,10 @@ export function GeneratorHub() {
                   className="px-4 py-3 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all flex items-center justify-center gap-2"
                 >
                   <Heart
-                    className={`w-4 h-4 ${
-                      selectedResult.liked
-                        ? 'fill-red-500 text-red-500'
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    className={`w-4 h-4 ${selectedResult.liked
+                      ? 'fill-red-500 text-red-500'
+                      : 'text-gray-700 dark:text-gray-300'
+                      }`}
                   />
                   <span>{selectedResult.liked ? 'Liked' : 'Like'}</span>
                 </button>
