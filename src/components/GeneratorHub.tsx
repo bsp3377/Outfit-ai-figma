@@ -273,7 +273,7 @@ export function GeneratorHub() {
         ? formData.productDescription
         : uploadedFiles.map(f => f.name).join(', ');
 
-      // Extract base64 data from the first uploaded image
+      // Extract base64 data from the first uploaded image (product)
       const firstImage = uploadedFiles[0];
       let productImageBase64 = '';
       let productImageMimeType = 'image/png';
@@ -287,12 +287,38 @@ export function GeneratorHub() {
         }
       }
 
+      // Extract logo image if uploaded
+      let logoImageBase64 = '';
+      let logoImageMimeType = 'image/png';
+      if (logoFile?.url?.startsWith('data:')) {
+        const logoMatches = logoFile.url.match(/^data:([^;]+);base64,(.+)$/);
+        if (logoMatches) {
+          logoImageMimeType = logoMatches[1];
+          logoImageBase64 = logoMatches[2];
+          console.log('🏷️ Logo image extracted for generation');
+        }
+      }
+
+      // Extract inspired template if uploaded (for Creative/Flatlay tab)
+      let inspiredTemplateBase64 = '';
+      let inspiredTemplateMimeType = 'image/png';
+      if (inspiredTemplateFile?.url?.startsWith('data:')) {
+        const templateMatches = inspiredTemplateFile.url.match(/^data:([^;]+);base64,(.+)$/);
+        if (templateMatches) {
+          inspiredTemplateMimeType = templateMatches[1];
+          inspiredTemplateBase64 = templateMatches[2];
+          console.log('✨ Inspired template extracted for generation');
+        }
+      }
+
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Step 3: Generating images with Gemini AI
       setGenerationStep('generating');
 
       console.log('🚀 Starting image generation with Gemini...');
+      if (logoImageBase64) console.log('   - Including brand logo');
+      if (inspiredTemplateBase64) console.log('   - Including inspired template reference');
 
       const result = await generateImageWithGemini({
         productDescription,
@@ -300,6 +326,10 @@ export function GeneratorHub() {
         formData,
         productImageBase64,
         productImageMimeType,
+        logoImageBase64,
+        logoImageMimeType,
+        inspiredTemplateBase64,
+        inspiredTemplateMimeType,
       });
 
       console.log('✅ Image generated successfully!');
