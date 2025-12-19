@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Loader2, CheckCircle, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { supabase } from '../utils/supabase';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -78,51 +79,70 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Simulate random success/error for demo
-      const isSuccess = Math.random() > 0.3;
-      
-      if (isSuccess) {
-        toast.success(
-          mode === 'signin' ? 'Successfully signed in!' : 'Account created successfully!',
-          {
-            description: mode === 'signin' ? 'Welcome back to Outfit AI' : 'Welcome to Outfit AI',
-            duration: 3000,
-          }
-        );
-        // Reset form
-        setFormData({ name: '', email: '', password: '', confirmPassword: '' });
-        if (onLoginSuccess) onLoginSuccess();
+    try {
+      if (mode === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.name,
+            },
+          },
+        });
+
+        if (error) throw error;
+
+        toast.success('Account created successfully!', {
+          description: 'Welcome to Outfit AI',
+          duration: 3000,
+        });
       } else {
-        setErrorBanner(
-          mode === 'signin' 
-            ? 'Invalid email or password. Please try again.' 
-            : 'This email is already registered. Please sign in instead.'
-        );
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (error) throw error;
+
+        toast.success('Successfully signed in!', {
+          description: 'Welcome back to Outfit AI',
+          duration: 3000,
+        });
       }
-    }, 2000);
+
+      // Reset form & trigger success
+      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+      if (onLoginSuccess) onLoginSuccess();
+
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      setErrorBanner(error.message || 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.info('Google Sign-In', {
-        description: 'This is a demo. In production, this would redirect to Google OAuth.',
-        duration: 3000,
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
       });
-    }, 1000);
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error('Google login failed', { description: error.message });
+      setIsLoading(false);
+    }
   };
 
   const handleAppleLogin = () => {
+    // Apple login often requires more setup, placeholder for now or similar to Google
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
       toast.info('Apple Sign-In', {
-        description: 'This is a demo. In production, this would redirect to Apple ID authentication.',
+        description: 'Requires additional configuration in Supabase dashboard.',
         duration: 3000,
       });
     }, 1000);
@@ -146,8 +166,8 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
               {mode === 'signin' ? 'Welcome back' : 'Create account'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {mode === 'signin' 
-                ? 'Sign in to continue to Outfit AI' 
+              {mode === 'signin'
+                ? 'Sign in to continue to Outfit AI'
                 : 'Start generating studio-quality photos'}
             </p>
           </div>
@@ -156,21 +176,19 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
           <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-6">
             <button
               onClick={() => mode !== 'signin' && switchMode()}
-              className={`flex-1 py-2.5 rounded-md transition-all ${
-                mode === 'signin'
-                  ? 'bg-white dark:bg-gray-900 shadow-sm'
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 py-2.5 rounded-md transition-all ${mode === 'signin'
+                ? 'bg-white dark:bg-gray-900 shadow-sm'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
             >
               Sign in
             </button>
             <button
               onClick={() => mode !== 'signup' && switchMode()}
-              className={`flex-1 py-2.5 rounded-md transition-all ${
-                mode === 'signup'
-                  ? 'bg-white dark:bg-gray-900 shadow-sm'
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 py-2.5 rounded-md transition-all ${mode === 'signup'
+                ? 'bg-white dark:bg-gray-900 shadow-sm'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
             >
               Create account
             </button>
@@ -199,11 +217,10 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`w-full pl-11 pr-4 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${
-                      errors.name 
-                        ? 'border-red-300 dark:border-red-700' 
-                        : 'border-gray-300 dark:border-gray-700'
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
+                    className={`w-full pl-11 pr-4 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${errors.name
+                      ? 'border-red-300 dark:border-red-700'
+                      : 'border-gray-300 dark:border-gray-700'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
                     placeholder="Enter your full name"
                     disabled={isLoading}
                   />
@@ -226,11 +243,10 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`w-full pl-11 pr-4 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${
-                    errors.email 
-                      ? 'border-red-300 dark:border-red-700' 
-                      : 'border-gray-300 dark:border-gray-700'
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
+                  className={`w-full pl-11 pr-4 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${errors.email
+                    ? 'border-red-300 dark:border-red-700'
+                    : 'border-gray-300 dark:border-gray-700'
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
                   placeholder="Enter your email"
                   disabled={isLoading}
                 />
@@ -252,11 +268,10 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className={`w-full pl-11 pr-11 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${
-                    errors.password 
-                      ? 'border-red-300 dark:border-red-700' 
-                      : 'border-gray-300 dark:border-gray-700'
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
+                  className={`w-full pl-11 pr-11 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${errors.password
+                    ? 'border-red-300 dark:border-red-700'
+                    : 'border-gray-300 dark:border-gray-700'
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
                   placeholder="Enter your password"
                   disabled={isLoading}
                 />
@@ -287,11 +302,10 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className={`w-full pl-11 pr-11 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${
-                      errors.confirmPassword 
-                        ? 'border-red-300 dark:border-red-700' 
-                        : 'border-gray-300 dark:border-gray-700'
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
+                    className={`w-full pl-11 pr-11 py-3.5 md:py-3 bg-white dark:bg-gray-950 border ${errors.confirmPassword
+                      ? 'border-red-300 dark:border-red-700'
+                      : 'border-gray-300 dark:border-gray-700'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 transition-all text-base md:text-sm`}
                     placeholder="Confirm your password"
                     disabled={isLoading}
                   />
@@ -323,9 +337,8 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3.5 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center justify-center gap-2 ${
-                isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'
-              }`}
+              className={`w-full py-3.5 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'
+                }`}
             >
               {isLoading ? (
                 <>
@@ -357,9 +370,8 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isLoading}
-              className={`w-full py-3.5 md:py-3 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center gap-2 ${
-                isLoading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
+              className={`w-full py-3.5 md:py-3 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -387,9 +399,8 @@ export function Auth({ onLoginSuccess }: AuthProps = {}) {
               type="button"
               onClick={handleAppleLogin}
               disabled={isLoading}
-              className={`w-full py-3.5 md:py-3 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center gap-2 ${
-                isLoading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
+              className={`w-full py-3.5 md:py-3 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />

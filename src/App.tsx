@@ -28,6 +28,7 @@ import { BillingSettings } from "./components/BillingSettings";
 import { AccountSettings } from "./components/AccountSettings";
 import { Toaster } from "sonner@2.0.3";
 import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
+import { supabase } from "./utils/supabase";
 
 export default function App() {
   const [isDark, setIsDark] = useState(false);
@@ -41,12 +42,46 @@ export default function App() {
   >("generate");
 
   useEffect(() => {
+    // Check active session - wrapped in try-catch to handle missing Supabase config
+    try {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setIsAuthenticated(!!session);
+        if (session) {
+          setAuthenticatedView("generate");
+        }
+      }).catch(err => {
+        console.warn('Supabase getSession failed:', err.message);
+      });
+
+      // Listen for changes
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setIsAuthenticated(!!session);
+        if (!session) {
+          setCurrentPage("home");
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    } catch (error) {
+      console.warn('Supabase auth not configured:', error);
+    }
+  }, []);
+
+  useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
   }, [isDark]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    setCurrentPage("home");
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
@@ -63,10 +98,7 @@ export default function App() {
         <AuthenticatedLayout
           currentView={authenticatedView}
           onViewChange={setAuthenticatedView}
-          onLogout={() => {
-            setIsAuthenticated(false);
-            setCurrentPage("home");
-          }}
+          onLogout={handleLogout}
           isDark={isDark}
           onToggleDark={() => setIsDark(!isDark)}
         >
@@ -81,10 +113,7 @@ export default function App() {
             <AccountSettings
               isDark={isDark}
               onToggleDark={() => setIsDark(!isDark)}
-              onLogout={() => {
-                setIsAuthenticated(false);
-                setCurrentPage("home");
-              }}
+              onLogout={handleLogout}
             />
           ) : null}
         </AuthenticatedLayout>

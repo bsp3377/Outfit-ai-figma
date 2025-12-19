@@ -4,6 +4,8 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner@2.0.3';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateImageWithGemini, getGeminiApiKey } from '../utils/gemini-api';
+import { ColorPicker, ColorState } from './ColorPicker';
+import { supabase } from '../utils/supabase';
 
 type TabType = 'fashion' | 'jewellery' | 'flatlay';
 type GenerationStep = 'uploading' | 'prompt' | 'generating' | 'saving' | null;
@@ -26,6 +28,12 @@ interface GeneratedImage {
 
 export function GeneratorHub() {
   const [activeTab, setActiveTab] = useState<TabType>('fashion');
+
+  // Clear template when switching tabs
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setInspiredTemplateFile(null);
+  };
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState<GenerationStep>(null);
@@ -90,37 +98,20 @@ export function GeneratorHub() {
     creativeSceneTheme: 'luxury-studio',
     creativeEnvironment: 'kitchen',
     creativeMotion: 'none',
-    flatlayTheme: 'minimal',
-    flatlayLayout: 'centered',
+    // Background Color Picker State
+    colorState: {
+      mode: 'solid',
+      solid: '#F3F4F6',
+      gradient: {
+        start: '#FFFFFF',
+        end: '#F3F4F6',
+        style: 'linear'
+      }
+    } as ColorState,
   });
 
-  // Mock generated images
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([
-    {
-      id: '1',
-      url: 'https://images.unsplash.com/photo-1684836341651-4b38c1c04d67?w=800',
-      type: 'fashion',
-      timestamp: new Date(Date.now() - 3600000),
-      liked: false,
-      autoSaved: true,
-    },
-    {
-      id: '2',
-      url: 'https://images.unsplash.com/photo-1708245917025-439f493d6571?w=800',
-      type: 'jewellery',
-      timestamp: new Date(Date.now() - 7200000),
-      liked: true,
-      autoSaved: true,
-    },
-    {
-      id: '3',
-      url: 'https://images.unsplash.com/photo-1630331384146-a8b2a79a9558?w=800',
-      type: 'flatlay',
-      timestamp: new Date(Date.now() - 10800000),
-      liked: false,
-      autoSaved: true,
-    },
-  ]);
+  // Generated images (starts empty, populated after AI generation)
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -211,6 +202,8 @@ export function GeneratorHub() {
     toast.success('Inspired template removed');
   };
 
+
+
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -273,19 +266,23 @@ export function GeneratorHub() {
         ? formData.productDescription
         : uploadedFiles.map(f => f.name).join(', ');
 
-      // Extract base64 data from the first uploaded image (product)
-      const firstImage = uploadedFiles[0];
-      let productImageBase64 = '';
-      let productImageMimeType = 'image/png';
+      // Extract base64 data from ALL uploaded images (up to 5)
+      const productImages: { base64: string; mimeType: string; name: string }[] = [];
 
-      if (firstImage.url.startsWith('data:')) {
-        // Extract mime type and base64 from data URL
-        const matches = firstImage.url.match(/^data:([^;]+);base64,(.+)$/);
-        if (matches) {
-          productImageMimeType = matches[1];
-          productImageBase64 = matches[2];
+      for (const file of uploadedFiles) {
+        if (file.url.startsWith('data:')) {
+          const matches = file.url.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            productImages.push({
+              mimeType: matches[1],
+              base64: matches[2],
+              name: file.name
+            });
+          }
         }
       }
+
+      console.log(`📦 Extracted ${productImages.length} product images for generation`);
 
       // Extract logo image if uploaded
       let logoImageBase64 = '';
@@ -317,6 +314,7 @@ export function GeneratorHub() {
       setGenerationStep('generating');
 
       console.log('🚀 Starting image generation with Gemini...');
+      console.log(`   - ${productImages.length} products to include`);
       if (logoImageBase64) console.log('   - Including brand logo');
       if (inspiredTemplateBase64) console.log('   - Including inspired template reference');
 
@@ -324,8 +322,7 @@ export function GeneratorHub() {
         productDescription,
         tabType: activeTab,
         formData,
-        productImageBase64,
-        productImageMimeType,
+        productImages,
         logoImageBase64,
         logoImageMimeType,
         inspiredTemplateBase64,
@@ -357,9 +354,90 @@ export function GeneratorHub() {
       setIsGenerating(false);
       setGenerationStep(null);
 
-      toast.success('Image generated successfully!', {
-        description: 'AI-generated image ready • 1 credit used',
-      });
+      // Save to Supabase Storage and Database
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          console.log('Uploading image to Supabase Storage for user:', user.id);
+
+          // Convert base64 to blob for storage upload
+          const base64Data = generatedImageUrl.split(',')[1];
+          const mimeMatch = generatedImageUrl.match(/^data:([^;]+);base64,/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+          const extension = mimeType === 'image/jpeg' || mimeType === 'image/jpg' ? 'jpg' : 'png';
+
+          // Decode base64 to binary
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: mimeType });
+
+          // Generate unique filename
+          const fileName = `${user.id}/${Date.now()}-${activeTab}.${extension}`;
+
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('generated-images')
+            .upload(fileName, blob, {
+              contentType: mimeType,
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Storage upload error:', uploadError);
+            toast.error('Failed to upload image', {
+              description: uploadError.message
+            });
+            return;
+          }
+
+          console.log('✅ Image uploaded to storage:', uploadData.path);
+
+          // Get public URL
+          const { data: publicUrlData } = supabase.storage
+            .from('generated-images')
+            .getPublicUrl(fileName);
+
+          const publicUrl = publicUrlData.publicUrl;
+          console.log('📍 Public URL:', publicUrl);
+
+          // Save to database with storage URL
+          const { data, error } = await supabase
+            .from('generated_images')
+            .insert({
+              user_id: user.id,
+              image_url: publicUrl,
+              generation_type: activeTab,
+              prompt_used: result.promptUsed,
+              is_liked: false,
+              is_auto_saved: true
+            })
+            .select();
+
+          if (error) {
+            console.error('Database save error:', error);
+            toast.error('Failed to save to library', {
+              description: error.message
+            });
+          } else {
+            console.log('✅ Successfully saved to database:', data);
+            toast.success('Image generated and saved!', {
+              description: 'View it in your Library',
+            });
+          }
+        } else {
+          console.warn('No user logged in, image not saved');
+          toast.success('Image generated successfully!', {
+            description: 'Sign in to save to your Library',
+          });
+        }
+      } catch (saveError) {
+        console.error('Error saving to Supabase:', saveError);
+        toast.error('Failed to save to library');
+      }
 
     } catch (error) {
       console.error('Generation error:', error);
@@ -461,10 +539,68 @@ export function GeneratorHub() {
     }
   };
 
-  const downloadImage = (url: string) => {
-    toast.success('Download started', {
-      description: 'Your image is being downloaded',
-    });
+  const downloadImage = async (url: string) => {
+    try {
+      // Handle data URLs (base64) - convert to blob for download
+      if (url.startsWith('data:')) {
+        // Extract mime type from data URL
+        const mimeMatch = url.match(/^data:([^;]+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+
+        // Determine file extension from mime type
+        const extensionMap: { [key: string]: string } = {
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+        };
+        const extension = extensionMap[mimeType] || 'png';
+
+        // Convert base64 to blob
+        const base64Data = url.split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+
+        // Create download link
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `outfit-ai-${Date.now()}.${extension}`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        toast.success('Image downloaded!', {
+          description: `Saved as ${extension.toUpperCase()} file`,
+        });
+      } else {
+        // Regular URL - fetch and download
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `outfit-ai-${Date.now()}.jpg`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        toast.success('Image downloaded!');
+      }
+    } catch (err) {
+      console.error('Download failed:', err);
+      toast.error('Failed to download image');
+    }
   };
 
   const useAsReference = (id: string) => {
@@ -670,7 +806,7 @@ export function GeneratorHub() {
               return (
                 <motion.button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-full whitespace-nowrap relative ${isActive
                     ? 'text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400'
@@ -886,6 +1022,7 @@ export function GeneratorHub() {
 
           {activeTab === 'fashion' && (
             <>
+
               <div>
                 <label className="block text-sm mb-2">Product Description</label>
                 <textarea
@@ -1042,11 +1179,22 @@ export function GeneratorHub() {
                   <option value="industrial-chic">Industrial Chic</option>
                   <option value="warm-boho">Warm Boho Interior</option>
                   <option value="plain">Plain Color</option>
+                  <option value="solid">Solid Color / Gradient</option>
                   <option value="outdoor">Outdoor/Nature</option>
                   <option value="street">Street Basic</option>
                   <option value="custom">Custom (describe below)</option>
                 </select>
               </div>
+
+              {formData.background === 'solid' && (
+                <div>
+                  <label className="block text-sm mb-2">Background Color</label>
+                  <ColorPicker
+                    value={formData.colorState}
+                    onChange={(newColor) => setFormData({ ...formData, colorState: newColor })}
+                  />
+                </div>
+              )}
 
               {formData.background === 'custom' && (
                 <div>
@@ -1299,6 +1447,8 @@ export function GeneratorHub() {
 
           {activeTab === 'jewellery' && (
             <>
+
+
               <div>
                 <label className="block text-sm mb-2">Product Description</label>
                 <textarea
@@ -1365,11 +1515,22 @@ export function GeneratorHub() {
                 >
                   <option value="solid-light">Solid Light (white / beige / light grey)</option>
                   <option value="solid-dark">Solid Dark (black / charcoal / deep tone)</option>
+                  <option value="color-picker">Custom Color/Gradient</option>
                   <option value="soft-gradient">Soft Gradient</option>
                   <option value="studio-seamless">Studio Seamless Paper</option>
                   <option value="real-minimal">Real Minimal Indoor (plain wall, no clutter)</option>
                 </select>
               </div>
+
+              {formData.accessoriesBackground === 'color-picker' && (
+                <div>
+                  <label className="block text-sm mb-2">Background Color</label>
+                  <ColorPicker
+                    value={formData.colorState}
+                    onChange={(newColor) => setFormData({ ...formData, colorState: newColor })}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm mb-2">Lighting</label>
@@ -1444,6 +1605,8 @@ export function GeneratorHub() {
 
           {activeTab === 'flatlay' && (
             <>
+
+
               <div>
                 <label className="block text-sm mb-2">Product Description</label>
                 <textarea
@@ -1579,8 +1742,8 @@ export function GeneratorHub() {
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 >
                   <option value="pure-white">Pure white</option>
-                  <option value="solid-color">Solid color</option>
-                  <option value="soft-gradient">Soft gradient</option>
+                  <option value="color-picker">Custom Color/Gradient</option>
+                  <option value="soft-gradient">Soft gradient (auto)</option>
                   <option value="seamless-sweep">Seamless studio sweep</option>
                   <option value="textured-marble">Textured (marble)</option>
                   <option value="textured-wood">Textured (wood)</option>
@@ -1592,6 +1755,16 @@ export function GeneratorHub() {
                   <option value="environmental-vanity">Environmental (vanity)</option>
                 </select>
               </div>
+
+              {formData.creativeBackground === 'color-picker' && (
+                <div>
+                  <label className="block text-sm mb-2">Background Color</label>
+                  <ColorPicker
+                    value={formData.colorState}
+                    onChange={(newColor) => setFormData({ ...formData, colorState: newColor })}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm mb-2">Lighting Setup</label>
@@ -1834,13 +2007,7 @@ export function GeneratorHub() {
                     />
                   </div>
 
-                  {/* Auto-saved Badge */}
-                  {img.autoSaved && (
-                    <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-green-500 text-white text-xs rounded-full">
-                      <Check className="w-3 h-3" />
-                      <span>Auto-saved</span>
-                    </div>
-                  )}
+
 
                   {/* Like Badge */}
                   {img.liked && (
@@ -1880,6 +2047,16 @@ export function GeneratorHub() {
                     >
                       <RefreshCw className="w-4 h-4" />
                       <span>Regenerate</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteImage(img.id);
+                      }}
+                      className="w-full py-2 bg-white/95 dark:bg-gray-900/95 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-lg transition-all flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>
@@ -1978,13 +2155,7 @@ export function GeneratorHub() {
                     <span className="text-gray-600 dark:text-gray-400">Created</span>
                     <span>{selectedResult.timestamp.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Status</span>
-                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                      <Check className="w-4 h-4" />
-                      Auto-saved
-                    </span>
-                  </div>
+
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -2012,6 +2183,13 @@ export function GeneratorHub() {
                         }`}
                     />
                     <span>{selectedResult.liked ? 'Liked' : 'Like'}</span>
+                  </button>
+                  <button
+                    onClick={() => deleteImage(selectedResult.id)}
+                    className="col-span-2 px-4 py-3 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Result</span>
                   </button>
                 </div>
               </div>

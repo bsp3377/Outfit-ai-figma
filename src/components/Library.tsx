@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Search, Filter, Heart, Download, Trash2, Grid3x3, List, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Filter, Heart, Download, Trash2, Grid3x3, List, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 type FilterType = 'all' | 'fashion' | 'jewellery' | 'flatlay' | 'liked';
 type ViewMode = 'grid' | 'list';
@@ -18,52 +19,57 @@ export function Library() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedImage, setSelectedImage] = useState<LibraryImage | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [images, setImages] = useState<LibraryImage[]>([]);
 
-  // Mock library images
-  const [images, setImages] = useState<LibraryImage[]>([
-    {
-      id: '1',
-      url: 'https://images.unsplash.com/photo-1684836341651-4b38c1c04d67?w=800',
-      type: 'fashion',
-      timestamp: new Date(Date.now() - 3600000),
-      liked: true,
-    },
-    {
-      id: '2',
-      url: 'https://images.unsplash.com/photo-1708245917025-439f493d6571?w=800',
-      type: 'jewellery',
-      timestamp: new Date(Date.now() - 7200000),
-      liked: false,
-    },
-    {
-      id: '3',
-      url: 'https://images.unsplash.com/photo-1630331384146-a8b2a79a9558?w=800',
-      type: 'flatlay',
-      timestamp: new Date(Date.now() - 10800000),
-      liked: true,
-    },
-    {
-      id: '4',
-      url: 'https://images.unsplash.com/photo-1704775988759-16fdeb0a2235?w=800',
-      type: 'fashion',
-      timestamp: new Date(Date.now() - 14400000),
-      liked: false,
-    },
-    {
-      id: '5',
-      url: 'https://images.unsplash.com/photo-1687078426457-89ce2b562eaf?w=800',
-      type: 'jewellery',
-      timestamp: new Date(Date.now() - 18000000),
-      liked: true,
-    },
-    {
-      id: '6',
-      url: 'https://images.unsplash.com/photo-1754639347079-d8d8aa8c99f6?w=800',
-      type: 'flatlay',
-      timestamp: new Date(Date.now() - 21600000),
-      liked: false,
-    },
-  ]);
+  // Fetch images from Supabase on mount
+  useEffect(() => {
+    async function fetchImages() {
+      if (!isSupabaseConfigured) {
+        // No demo data - just show empty library when Supabase is not configured
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log('No user logged in, showing empty library');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('Fetching images for user:', user.id);
+        const { data, error } = await supabase
+          .from('generated_images')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching images:', error);
+          toast.error('Failed to load library');
+        } else if (data) {
+          console.log('Fetched', data.length, 'images from database');
+          const mappedImages: LibraryImage[] = data.map((img: any) => ({
+            id: img.id,
+            url: img.image_url,
+            type: img.generation_type || 'fashion',
+            timestamp: new Date(img.created_at),
+            liked: img.is_liked || false,
+          }));
+          setImages(mappedImages);
+        }
+      } catch (err) {
+        console.error('Failed to fetch images:', err);
+        toast.error('Error loading library');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchImages();
+  }, []);
 
   const filteredImages = images.filter(img => {
     if (filter === 'liked') return img.liked;
@@ -71,24 +77,102 @@ export function Library() {
     return true;
   });
 
-  const toggleLike = (id: string) => {
+  const toggleLike = async (id: string) => {
+    const img = images.find(i => i.id === id);
+    if (!img) return;
+
+    const newLikedState = !img.liked;
     setImages(prev =>
-      prev.map(img => img.id === id ? { ...img, liked: !img.liked } : img)
+      prev.map(i => i.id === id ? { ...i, liked: newLikedState } : i)
     );
+
+    // Update in Supabase
+    if (isSupabaseConfigured) {
+      await supabase
+        .from('generated_images')
+        .update({ is_liked: newLikedState })
+        .eq('id', id);
+    }
   };
 
-  const deleteImage = (id: string) => {
+  const deleteImage = async (id: string) => {
     setImages(prev => prev.filter(img => img.id !== id));
     toast.success('Image deleted');
     if (selectedImage?.id === id) {
       setSelectedImage(null);
     }
+
+    // Delete from Supabase
+    if (isSupabaseConfigured) {
+      await supabase
+        .from('generated_images')
+        .delete()
+        .eq('id', id);
+    }
   };
 
-  const downloadImage = (url: string) => {
-    toast.success('Download started', {
-      description: 'Your image is being downloaded',
-    });
+  const downloadImage = async (url: string) => {
+    try {
+      // Handle data URLs (base64) - convert to blob for download
+      if (url.startsWith('data:')) {
+        // Extract mime type from data URL (e.g., "data:image/jpeg;base64,..." -> "image/jpeg")
+        const mimeMatch = url.match(/^data:([^;]+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+
+        // Determine file extension from mime type
+        const extensionMap: { [key: string]: string } = {
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+        };
+        const extension = extensionMap[mimeType] || 'png';
+
+        // Convert base64 to blob
+        const base64Data = url.split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+
+        // Create download link
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `outfit-ai-${Date.now()}.${extension}`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        toast.success('Image downloaded!', {
+          description: `Saved as ${extension.toUpperCase()} file`,
+        });
+      } else {
+        // Regular URL - fetch and download
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `outfit-ai-${Date.now()}.jpg`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        toast.success('Image downloaded!');
+      }
+    } catch (err) {
+      console.error('Download failed:', err);
+      toast.error('Failed to download image');
+    }
   };
 
   const filters: { id: FilterType; label: string }[] = [
@@ -127,21 +211,19 @@ export function Library() {
         <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-1">
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 rounded transition-all ${
-              viewMode === 'grid'
-                ? 'bg-purple-600 text-white'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
+            className={`p-2 rounded transition-all ${viewMode === 'grid'
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
           >
             <Grid3x3 className="w-5 h-5" />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 rounded transition-all ${
-              viewMode === 'list'
-                ? 'bg-purple-600 text-white'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
+            className={`p-2 rounded transition-all ${viewMode === 'list'
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
           >
             <List className="w-5 h-5" />
           </button>
@@ -154,11 +236,10 @@ export function Library() {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
-              filter === f.id
-                ? 'bg-purple-600 text-white'
-                : 'bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-purple-600 dark:hover:border-purple-600'
-            }`}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all ${filter === f.id
+              ? 'bg-purple-600 text-white'
+              : 'bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-purple-600 dark:hover:border-purple-600'
+              }`}
           >
             {f.label}
           </button>
@@ -198,9 +279,8 @@ export function Library() {
                   className="p-2 bg-white/90 dark:bg-gray-900/90 rounded-lg hover:scale-110 transition-all"
                 >
                   <Heart
-                    className={`w-5 h-5 ${
-                      img.liked ? 'fill-red-500 text-red-500' : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    className={`w-5 h-5 ${img.liked ? 'fill-red-500 text-red-500' : 'text-gray-700 dark:text-gray-300'
+                      }`}
                   />
                 </button>
                 <button
@@ -258,9 +338,8 @@ export function Library() {
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
                 >
                   <Heart
-                    className={`w-5 h-5 ${
-                      img.liked ? 'fill-red-500 text-red-500' : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    className={`w-5 h-5 ${img.liked ? 'fill-red-500 text-red-500' : 'text-gray-700 dark:text-gray-300'
+                      }`}
                   />
                 </button>
                 <button
@@ -338,11 +417,10 @@ export function Library() {
                   className="px-4 py-3 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all flex items-center justify-center gap-2"
                 >
                   <Heart
-                    className={`w-4 h-4 ${
-                      selectedImage.liked
-                        ? 'fill-red-500 text-red-500'
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    className={`w-4 h-4 ${selectedImage.liked
+                      ? 'fill-red-500 text-red-500'
+                      : 'text-gray-700 dark:text-gray-300'
+                      }`}
                   />
                   <span>{selectedImage.liked ? 'Liked' : 'Like'}</span>
                 </button>

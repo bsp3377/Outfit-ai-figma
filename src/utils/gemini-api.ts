@@ -5,14 +5,14 @@
 
 const ENV_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY);
 // ⚠️ NOTE: This key was provided for the demo session. In production, use environment variables.
-const DEMO_API_KEY = 'AQ.Ab8RN6IzYD08YXTqqQtqt2j8jMKE0nQa0VB_i0BcA0F-3gpMuA';
+const DEMO_API_KEY = 'AQ.Ab8RN6J8hxBR5S5caBqUGphKyKWpraxSJWdCKSg5t030Veuejw';
 const LOCAL_STORAGE_KEY = 'gemini_api_key';
 
 // Image generation model endpoint
-const GEMINI_IMAGE_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const GEMINI_IMAGE_API_URL = 'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-3-pro-image-preview:generateContent';
 
 // Text generation model endpoint (for prompt generation fallback)
-const GEMINI_TEXT_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+const GEMINI_TEXT_API_URL = 'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash-lite:generateContent';
 
 export const getGeminiApiKey = () => {
   return ENV_API_KEY || DEMO_API_KEY || '';
@@ -28,15 +28,23 @@ interface GenerationParams {
   formData: any;
 }
 
+interface ProductImage {
+  base64: string;
+  mimeType: string;
+  name?: string; // Optional name/description of the product
+}
+
 interface ImageGenerationParams {
   productDescription: string;
   tabType: 'fashion' | 'jewellery' | 'flatlay';
   formData: any;
-  productImageBase64?: string; // Base64 encoded product image
-  productImageMimeType?: string; // e.g., 'image/png', 'image/jpeg'
-  logoImageBase64?: string; // Base64 encoded logo image
+  productImages?: ProductImage[]; // Array of up to 5 product images
+  // Legacy single image support (deprecated, use productImages array instead)
+  productImageBase64?: string;
+  productImageMimeType?: string;
+  logoImageBase64?: string;
   logoImageMimeType?: string;
-  inspiredTemplateBase64?: string; // Base64 encoded inspired template (for Creative tab)
+  inspiredTemplateBase64?: string;
   inspiredTemplateMimeType?: string;
 }
 
@@ -56,9 +64,31 @@ function buildImagePrompt(params: ImageGenerationParams): string {
   // Quality enhancement suffix for all prompts
   const qualitySuffix = '8K resolution, ultra-detailed, professional retouching, magazine-quality, high dynamic range, pristine clarity, luxury aesthetic.';
 
+  // Background color instructions
+  const colorState = formData.colorState;
+  let colorInstructions = '';
+
+  if (colorState && colorState.mode === 'solid') {
+    colorInstructions = `with a solid ${colorState.solid} background color`;
+  } else if (colorState && colorState.mode === 'gradient') {
+    const { start, end, style } = colorState.gradient;
+    const styleText = style === 'radial' ? 'radial' : style === 'linear' ? 'linear' : 'diagonal';
+    colorInstructions = `with a ${styleText} gradient background fading from ${start} to ${end}`;
+  }
+
   // Logo instructions if logo is provided
   const logoInstructions = logoImageBase64
     ? `CRITICAL REQUIREMENT: You MUST include the brand logo (provided in the logo reference image) in the generated image. It is NOT optional. Place it ${formData.logoPlacement || 'on the background wall'} in a ${formData.logoFocus === 'subtle' ? 'tasteful, subtle manner' : 'clear, prominent position'}${formData.logoLocation ? ` at ${formData.logoLocation}` : ''}. The logo should look realistic, as if it's part of the physical environment (e.g., printed on signage, a wall decal, or prop branding).`
+    : '';
+
+  // Strict negative constraint to prevent lighting equipment from appearing
+  const negativeConstraint = 'CRITICAL: Do NOT show any lighting equipment, cameras, softboxes, stands, studio gear, or production tools in the image. The image must be a finished commercial shot, not a behind-the-scenes look.';
+
+
+
+  // Inspired template instructions
+  const templateInstructions = inspiredTemplateBase64
+    ? 'IMPORTANT: Use the style, composition, color palette, lighting, and overall aesthetic from the inspired template image as a strong reference. Match the visual mood, layout approach, and styling while featuring the product from the product reference image.'
     : '';
 
   if (tabType === 'fashion') {
@@ -67,26 +97,36 @@ function buildImagePrompt(params: ImageGenerationParams): string {
     const gender = formData.gender || 'Female';
     const hairstyle = formData.hairstyleDescription || formData.hairstyle?.replace(/-/g, ' ') || 'styled';
     const pose = formData.poseDescription || formData.pose?.replace(/-/g, ' ') || 'confident standing';
-    const background = formData.backgroundDescription || getEnhancedBackground(formData.background) || 'premium studio with gradient lighting';
+
+    let background = formData.backgroundDescription || getEnhancedBackground(formData.background) || 'premium studio with gradient lighting';
+    if (formData.background === 'solid') {
+      background = `clean studio ${colorInstructions}`;
+    }
+
     const camera = formData.cameraDescription || formData.camera || '85mm f/1.4 portrait lens, ISO 100';
     const lighting = formData.lightingDescription || getEnhancedLighting(formData.lighting) || 'professional three-point lighting with softbox';
     const keyLight = formData.keyLight ? `, ${formData.keyLight} key light positioning` : '';
     const advancedPrompt = formData.advancedPrompt ? `. Additional creative direction: ${formData.advancedPrompt}` : '';
 
-    return `Ultra-premium high-end e-commerce fashion photography: A stunning ${age} ${ethnicity} ${gender} model with ${hairstyle} hairstyle, in a ${pose} pose, wearing and elegantly showcasing the product from the reference image. ${background}, photographed with ${camera}, ${lighting}${keyLight}. The model should be impeccably styled, wearing the exact garment/product from the uploaded image with perfect fit and draping. Photorealistic, Vogue-quality commercial photography, razor-sharp focus on product details, flawless skin retouching, cinematic color grading. ${logoInstructions}${advancedPrompt} Product: ${productDescription}. ${qualitySuffix}`;
+    return `Ultra-premium high-end e-commerce fashion photography: A stunning ${age} ${ethnicity} ${gender} model with ${hairstyle} hairstyle, in a ${pose} pose, wearing and elegantly showcasing ALL the products from the reference images together in a single cohesive outfit look. ${background}, photographed with ${camera}, ${lighting}${keyLight}. The model should be impeccably styled, wearing ALL the exact garments/products/accessories from the uploaded images with perfect fit and styling. Each product must be clearly visible and featured. Photorealistic, Vogue-quality commercial photography, razor-sharp focus on product details, flawless skin retouching, cinematic color grading. ${templateInstructions} ${logoInstructions}${advancedPrompt} Products: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
 
   } else if (tabType === 'jewellery') {
     const shotStyle = formData.accessoriesShotStyle?.replace(/-/g, ' ') || 'luxury editorial';
     const framing = formData.accessoriesFraming?.replace(/-/g, ' ') || 'elegant close-up';
     const emphasis = formData.accessoriesProductEmphasis?.replace(/-/g, ' ') || 'product hero with model';
-    const background = formData.accessoriesBackground?.replace(/-/g, ' ') || 'soft gradient studio';
+
+    let background = formData.accessoriesBackground?.replace(/-/g, ' ') || 'soft gradient studio';
+    if (formData.accessoriesBackground === 'color-picker') {
+      background = `clean studio ${colorInstructions}`;
+    }
+
     const lighting = getEnhancedLighting(formData.accessoriesLighting) || 'dramatic rim lighting with soft fill';
     const cameraLook = formData.accessoriesCameraLook?.replace(/-/g, ' ') || 'macro portrait 105mm f/2.8';
     const depth = formData.accessoriesDepth?.replace(/-/g, ' ') || 'shallow bokeh';
     const retouch = formData.accessoriesRetouch?.replace(/-/g, ' ') || 'flawless editorial';
     const pose = formData.accessoriesPose?.replace(/-/g, ' ') || 'jewelry prominently featured';
 
-    return `Ultra-premium jewelry/accessories advertising photography: ${shotStyle} styling, ${framing} with ${emphasis}. An elegant model gracefully wearing or displaying the jewelry/accessory from the reference image. ${background} backdrop, ${lighting}, shot with ${cameraLook} lens for ${depth} effect, ${retouch} level retouching. Model pose: ${pose}. Cartier/Tiffany-level luxury aesthetic, gemstones sparkling with perfect light refraction, metal surfaces gleaming, impeccable product focus with beautiful model complement. ${logoInstructions} Product: ${productDescription}. ${qualitySuffix}`;
+    return `Ultra-premium jewelry/accessories advertising photography: ${shotStyle} styling, ${framing} with ${emphasis}. An elegant model gracefully wearing or displaying ALL the jewelry/accessories from the reference images together as a coordinated look. ${background} backdrop, ${lighting}, shot with ${cameraLook} lens for ${depth} effect, ${retouch} level retouching. Model pose: ${pose}. Cartier/Tiffany-level luxury aesthetic, each piece must be clearly visible - gemstones sparkling with perfect light refraction, metal surfaces gleaming, impeccable focus on every product with beautiful model complement. ${templateInstructions} ${logoInstructions} Products: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
 
   } else {
     // Creative/Flatlay
@@ -95,21 +135,21 @@ function buildImagePrompt(params: ImageGenerationParams): string {
     const category = formData.creativeProductCategory?.replace(/-/g, ' ') || 'premium apparel';
     const shotType = formData.creativeShotType?.replace(/-/g, ' ') || 'hero packshot';
     const angle = formData.creativeAngle?.replace(/-/g, ' ') || 'optimal 45 degree';
-    const background = getEnhancedBackground(formData.creativeBackground) || 'pure white infinity';
+
+    let background = getEnhancedBackground(formData.creativeBackground) || 'pure white infinity';
+    if (formData.creativeBackground === 'color-picker' || formData.creativeBackground === 'solid-color' || formData.creativeBackground === 'soft-gradient') {
+      background = `clean studio ${colorInstructions}`;
+    }
+
     const lighting = getEnhancedLighting(formData.creativeLighting) || 'soft diffused studio lighting';
     const shadow = formData.creativeShadow?.replace(/-/g, ' ') || 'gentle soft shadow';
     const colorMood = formData.creativeColorMood?.replace(/-/g, ' ') || 'true neutral colors';
     const props = formData.creativeProps?.replace(/-/g, ' ');
     const composition = formData.creativeComposition?.replace(/-/g, ' ') || 'rule of thirds hero';
 
-    // Inspired template instructions
-    const templateInstructions = inspiredTemplateBase64
-      ? 'IMPORTANT: Use the style, composition, color palette, and overall aesthetic from the inspired template image as a reference. Match the visual mood, layout approach, and styling while featuring the product from the product reference image.'
-      : '';
-
     const propsText = props && props !== 'none' ? ` Styled with ${props} as complementary props.` : '';
 
-    return `Ultra-premium ${theme} product photography: ${layout} ${composition} for ${category}. ${shotType} style captured from ${angle} camera angle. ${background} background, ${lighting} with ${shadow}. ${colorMood} color grading. The product from the reference image is the hero element, styled beautifully for high-end e-commerce.${propsText} ${templateInstructions} ${logoInstructions} Product: ${productDescription}. ${qualitySuffix}`;
+    return `Ultra-premium ${theme} product photography: ${layout} ${composition} for ${category}. ${shotType} style captured from ${angle} camera angle. ${background} background, ${lighting} with ${shadow}. ${colorMood} color grading. The product from the reference image is the hero element, styled beautifully for high-end e-commerce.${propsText} ${templateInstructions} ${logoInstructions} Product: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
   }
 }
 
@@ -154,20 +194,20 @@ function getEnhancedBackground(background: string | undefined): string {
  */
 function getEnhancedLighting(lighting: string | undefined): string {
   const lightingMap: Record<string, string> = {
-    'softbox': 'professional softbox with diffused key light and fill',
-    'softbox-45': 'softbox at 45 degrees with gentle fill light',
-    'ring': 'beauty ring light for even, flattering illumination',
+    'softbox': 'soft, diffused professional lighting with gentle shadows',
+    'softbox-45': 'directional soft lighting at 45 degrees, creating dimension',
+    'ring': 'even, shadowless beauty lighting',
     'natural': 'natural window light with soft diffusion',
     'dramatic': 'dramatic chiaroscuro lighting with deep shadows',
     'flat': 'even flat lighting for product clarity',
-    'rim': 'artistic rim lighting with halo effect',
-    'butterfly': 'classic butterfly/paramount lighting setup',
-    'rembrandt': 'sophisticated Rembrandt lighting pattern',
-    'split': 'dramatic split lighting for mood',
+    'rim': 'artistic rim lighting giving a halo effect',
+    'butterfly': 'classic glamour lighting pattern',
+    'rembrandt': 'sophisticated directional lighting with triangle highlight',
+    'split': 'dramatic side lighting creating strong contrast',
     'golden': 'warm golden hour natural lighting',
-    'studio': 'professional multi-light studio setup',
+    'studio': 'professional studio lighting environment',
     'golden-hour': 'warm, glowing golden hour sunlight',
-    'studio-high-key': 'bright, airy high-key studio lighting',
+    'studio-high-key': 'bright, airy high-key illumination',
     'moody-cinematic': 'atmospheric moody cinematic lighting with color contrast',
     'neon-glow': 'modern neon accent lighting with cool tones',
     'soft-daylight': 'clean, neutral soft daylight simulation',
@@ -180,11 +220,12 @@ function getEnhancedLighting(lighting: string | undefined): string {
 
 /**
  * Generate an image using Gemini's image generation capabilities
- * Uses the gemini-2.0-flash-exp model with image generation support
+ * Uses the gemini-3-pro-image-preview model with image generation support
  * Supports product images, logos, and inspired templates as references
  */
 export async function generateImageWithGemini(params: ImageGenerationParams): Promise<ImageGenerationResult> {
   const {
+    productImages,
     productImageBase64,
     productImageMimeType,
     logoImageBase64,
@@ -206,8 +247,29 @@ export async function generateImageWithGemini(params: ImageGenerationParams): Pr
     { text: prompt }
   ];
 
-  // Add product image first (main reference)
-  if (productImageBase64 && productImageMimeType) {
+  // Add all product images (new multi-image support)
+  if (productImages && productImages.length > 0) {
+    const productCount = productImages.length;
+    parts.push({
+      text: `[PRODUCT IMAGES - The model must be wearing/using ALL ${productCount} of the following products together in the same image]`
+    });
+
+    productImages.forEach((img, index) => {
+      const productLabel = img.name || `Product ${index + 1}`;
+      parts.push({
+        text: `[PRODUCT ${index + 1}: ${productLabel}]`
+      });
+      parts.push({
+        inlineData: {
+          mimeType: img.mimeType,
+          data: img.base64
+        }
+      });
+    });
+    console.log(`📦 Including ${productCount} product images for generation`);
+  }
+  // Legacy single image support (fallback)
+  else if (productImageBase64 && productImageMimeType) {
     parts.push({
       text: '[PRODUCT IMAGE - This is the main product to feature in the generated image]'
     });
@@ -255,6 +317,7 @@ export async function generateImageWithGemini(params: ImageGenerationParams): Pr
       },
       body: JSON.stringify({
         contents: [{
+          role: 'user',
           parts: parts
         }],
         generationConfig: {
@@ -404,6 +467,7 @@ Please provide a concise, professional prompt for generating this image.`;
       },
       body: JSON.stringify({
         contents: [{
+          role: 'user',
           parts: [{
             text: prompt
           }]
@@ -457,6 +521,7 @@ export async function testGeminiConnection(): Promise<boolean> {
       },
       body: JSON.stringify({
         contents: [{
+          role: 'user',
           parts: [{
             text: 'Hello, this is a test message. Please respond with "OK" if you can read this.'
           }]
