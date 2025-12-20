@@ -29,6 +29,7 @@ import { AccountSettings } from "./components/AccountSettings";
 import { Toaster } from "sonner@2.0.3";
 import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
 import { supabase } from "./utils/supabase";
+import { useBeforeAfterImages, useHeroImages } from "./utils/useSiteContent";
 
 export default function App() {
   const [isDark, setIsDark] = useState(false);
@@ -40,6 +41,10 @@ export default function App() {
   const [authenticatedView, setAuthenticatedView] = useState<
     "generate" | "library" | "billing" | "settings" | "account"
   >("generate");
+
+  // Fetch dynamic before/after images from Supabase CMS
+  const beforeAfterImages = useBeforeAfterImages();
+  const heroImages = useHeroImages();
 
   useEffect(() => {
     // Check active session - wrapped in try-catch to handle missing Supabase config
@@ -287,10 +292,10 @@ export default function App() {
                     <div className="w-full aspect-[4/3] lg:aspect-auto lg:h-[500px]">
                       <BeforeAfterSlider
                         beforeImage={
-                          image_a3b4af98c90003c1c241e34732ad80a5631c9b37
+                          heroImages.hero.before || image_a3b4af98c90003c1c241e34732ad80a5631c9b37
                         }
                         afterImage={
-                          image_1ac3da18db9cf9a461af1c75316b1d71edf52cf1
+                          heroImages.hero.after || image_1ac3da18db9cf9a461af1c75316b1d71edf52cf1
                         }
                         beforeAlt="Product on plain background"
                         afterAlt="Product on fashion model"
@@ -378,8 +383,8 @@ export default function App() {
                     <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                       <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
                         <BeforeAfterSlider
-                          beforeImage="https://images.unsplash.com/photo-1758600587382-2d7da8b9e361?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHQtc2hpcnQlMjBwbGFpbiUyMGJhY2tncm91bmR8ZW58MXx8fHwxNzY1OTM5NjY1fDA&ixlib=rb-4.1.0&q=80&w=1080"
-                          afterImage="https://images.unsplash.com/photo-1704775988759-16fdeb0a2235?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2RlbCUyMHdlYXJpbmclMjBkcmVzcyUyMHN0dWRpb3xlbnwxfHx8fDE3NjU5Mzk2NjZ8MA&ixlib=rb-4.1.0&q=80&w=1080"
+                          beforeImage={beforeAfterImages.apparel.before}
+                          afterImage={beforeAfterImages.apparel.after}
                           beforeAlt="Clothing product plain"
                           afterAlt="Model wearing clothing"
                         />
@@ -396,8 +401,8 @@ export default function App() {
                     <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                       <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
                         <BeforeAfterSlider
-                          beforeImage="https://images.unsplash.com/photo-1717282924526-07a7373bb142?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxqZXdlbHJ5JTIwcHJvZHVjdCUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwxfHx8fDE3NjU5Mzk2NjV8MA&ixlib=rb-4.1.0&q=80&w=1080"
-                          afterImage="https://images.unsplash.com/photo-1708245917025-439f493d6571?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxqZXdlbHJ5JTIwbW9kZWwlMjB3ZWFyaW5nfGVufDF8fHx8MTc2NTkzOTY2N3ww&ixlib=rb-4.1.0&q=80&w=1080"
+                          beforeImage={beforeAfterImages.jewelry.before}
+                          afterImage={beforeAfterImages.jewelry.after}
                           beforeAlt="Jewelry product"
                           afterAlt="Model wearing jewelry"
                         />
@@ -414,8 +419,8 @@ export default function App() {
                     <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                       <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
                         <BeforeAfterSlider
-                          beforeImage="https://images.unsplash.com/photo-1726133731374-31f3ab7d29d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaG9lcyUyMHByb2R1Y3QlMjBwaG90b2dyYXBoeXxlbnwxfHx8fDE3NjU5Mzk2NjV8MA&ixlib=rb-4.1.0&q=80&w=1080"
-                          afterImage="https://images.unsplash.com/photo-1635104782894-09ddfc0360cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwbW9kZWwlMjBzaG9lc3xlbnwxfHx8fDE3NjU5Mzk2Njd8MA&ixlib=rb-4.1.0&q=80&w=1080"
+                          beforeImage={beforeAfterImages.shoes.before}
+                          afterImage={beforeAfterImages.shoes.after}
                           beforeAlt="Shoes product"
                           afterAlt="Model wearing shoes"
                         />
@@ -432,8 +437,8 @@ export default function App() {
                     <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                       <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
                         <BeforeAfterSlider
-                          beforeImage="https://images.unsplash.com/photo-1537440437066-c585a62baf1f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYW5kYmFnJTIwcGxhaW4lMjBiYWNrZ3JvdW5kfGVufDF8fHx8MTc2NTkzOTY2Nnww&ixlib=rb-4.1.0&q=80&w=1080"
-                          afterImage="https://images.unsplash.com/photo-1754639347079-d8d8aa8c99f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2RlbCUyMGhhbmRiYWclMjBzdHlsZWR8ZW58MXx8fHwxNzY1OTM5NjY3fDA&ixlib=rb-4.1.0&q=80&w=1080"
+                          beforeImage={beforeAfterImages.handbag.before}
+                          afterImage={beforeAfterImages.handbag.after}
                           beforeAlt="Handbag product"
                           afterAlt="Styled handbag"
                         />
@@ -450,8 +455,8 @@ export default function App() {
                     <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                       <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
                         <BeforeAfterSlider
-                          beforeImage="https://images.unsplash.com/photo-1548761013-616652707ab8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3YXRjaCUyMHByb2R1Y3QlMjBzaW1wbGU8ZW58MXx8fHwxNzY1OTM5NjY2fDA&ixlib=rb-4.1.0&q=80&w=1080"
-                          afterImage="https://images.unsplash.com/photo-1687078426457-89ce2b562eaf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3YXRjaCUyMGxpZmVzdHlsZSUyMHBob3RvZ3JhcGh5fGVufDF8fHx8MTc2NTkzOTY2OHww&ixlib=rb-4.1.0&q=80&w=1080"
+                          beforeImage={beforeAfterImages.watch.before}
+                          afterImage={beforeAfterImages.watch.after}
                           beforeAlt="Watch product"
                           afterAlt="Watch lifestyle"
                         />

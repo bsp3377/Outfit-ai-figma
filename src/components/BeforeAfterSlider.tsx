@@ -12,11 +12,11 @@ interface BeforeAfterSliderProps {
   afterAlt?: string;
 }
 
-export function BeforeAfterSlider({ 
-  beforeImage, 
-  afterImage, 
-  beforeAlt = "Before", 
-  afterAlt = "After" 
+export function BeforeAfterSlider({
+  beforeImage,
+  afterImage,
+  beforeAlt = "Before",
+  afterAlt = "After"
 }: BeforeAfterSliderProps) {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -32,7 +32,7 @@ export function BeforeAfterSlider({
   };
 
   return (
-    <div 
+    <div
       className="relative w-full h-full overflow-hidden rounded-lg cursor-col-resize select-none"
       onMouseMove={handleMove}
       onMouseDown={(e) => {
@@ -51,33 +51,33 @@ export function BeforeAfterSlider({
     >
       {/* After Image (right side) */}
       <div className="absolute inset-0">
-        <ImageWithFallback 
-          src={image_0ef793a5965fe79a80bdb0d1fd88d97304605580} 
+        <img
+          src={afterImage}
           alt={afterAlt}
           className="w-full h-full object-cover"
         />
       </div>
 
       {/* Before Image (left side) */}
-      <div 
+      <div
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
       >
-        <ImageWithFallback 
-          src={beforeProductImage} 
+        <img
+          src={beforeImage}
           alt={beforeAlt}
           className="w-full h-full object-cover"
         />
       </div>
 
       {/* Slider Line */}
-      <div 
+      <div
         className="absolute top-0 bottom-0 w-1 bg-white shadow-lg"
         style={{ left: `${sliderPosition}%` }}
       >
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-700">
-            <path d="M6 4L2 8L6 12M10 4L14 8L10 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M6 4L2 8L6 12M10 4L14 8L10 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
