@@ -119,6 +119,10 @@ export function useBeforeAfterImages() {
             before: getImage('watch_before', defaults.watch_before),
             after: getImage('watch_after', defaults.watch_after),
         },
+        fashion: {
+            before: getImage('fashion_before', ''),
+            after: getImage('fashion_after', ''),
+        },
     };
 }
 
@@ -137,5 +141,38 @@ export function useHeroImages() {
             before: beforeUrl,
             after: afterUrl,
         },
+    };
+}
+
+/**
+ * Hook for feature section card images
+ */
+export function useFeatureImages() {
+    const { content, isLoading } = useSiteContent('features');
+
+    // Default fallback images
+    const defaults = {
+        fashion_model: 'https://images.unsplash.com/photo-1704775988759-16fdeb0a2235?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+        jewelry_closeup: 'https://images.unsplash.com/photo-1763120476143-3d8278fb3db3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+        flatlay_pro: 'https://images.unsplash.com/photo-1630331384146-a8b2a79a9558?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+    };
+
+    return {
+        isLoading,
+        fashionModel: content['fashion_model_image']?.image_url || defaults.fashion_model,
+        jewelryCloseup: content['jewelry_closeup_image']?.image_url || defaults.jewelry_closeup,
+        flatlayPro: content['flatlay_pro_image']?.image_url || defaults.flatlay_pro,
+    };
+}
+
+/**
+ * Hook for logo image
+ */
+export function useLogoImage() {
+    const { content, isLoading } = useSiteContent('branding');
+
+    return {
+        isLoading,
+        logo: content['logo']?.image_url || '',
     };
 }

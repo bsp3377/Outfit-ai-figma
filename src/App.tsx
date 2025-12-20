@@ -29,7 +29,7 @@ import { AccountSettings } from "./components/AccountSettings";
 import { Toaster } from "sonner@2.0.3";
 import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
 import { supabase } from "./utils/supabase";
-import { useBeforeAfterImages, useHeroImages } from "./utils/useSiteContent";
+import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage } from "./utils/useSiteContent";
 
 export default function App() {
   const [isDark, setIsDark] = useState(false);
@@ -45,6 +45,8 @@ export default function App() {
   // Fetch dynamic before/after images from Supabase CMS
   const beforeAfterImages = useBeforeAfterImages();
   const heroImages = useHeroImages();
+  const featureImages = useFeatureImages();
+  const logoData = useLogoImage();
 
   useEffect(() => {
     // Check active session - wrapped in try-catch to handle missing Supabase config
@@ -290,16 +292,22 @@ export default function App() {
 
                     {/* Hero Demo */}
                     <div className="w-full aspect-[4/3] lg:aspect-auto lg:h-[500px]">
-                      <BeforeAfterSlider
-                        beforeImage={
-                          heroImages.hero.before || image_a3b4af98c90003c1c241e34732ad80a5631c9b37
-                        }
-                        afterImage={
-                          heroImages.hero.after || image_1ac3da18db9cf9a461af1c75316b1d71edf52cf1
-                        }
-                        beforeAlt="Product on plain background"
-                        afterAlt="Product on fashion model"
-                      />
+                      {heroImages.isLoading ? (
+                        <div className="w-full h-full bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse flex items-center justify-center">
+                          <div className="text-gray-400">Loading...</div>
+                        </div>
+                      ) : (
+                        <BeforeAfterSlider
+                          beforeImage={
+                            heroImages.hero.before || image_a3b4af98c90003c1c241e34732ad80a5631c9b37
+                          }
+                          afterImage={
+                            heroImages.hero.after || image_1ac3da18db9cf9a461af1c75316b1d71edf52cf1
+                          }
+                          beforeAlt="Product on plain background"
+                          afterAlt="Product on fashion model"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -474,10 +482,10 @@ export default function App() {
                       <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
                         <BeforeAfterSlider
                           beforeImage={
-                            image_a3b4af98c90003c1c241e34732ad80a5631c9b37
+                            beforeAfterImages.fashion.before || image_a3b4af98c90003c1c241e34732ad80a5631c9b37
                           }
                           afterImage={
-                            image_0ef793a5965fe79a80bdb0d1fd88d97304605580
+                            beforeAfterImages.fashion.after || image_0ef793a5965fe79a80bdb0d1fd88d97304605580
                           }
                           beforeAlt="Product on plain background"
                           afterAlt="Product on fashion model"
@@ -528,10 +536,8 @@ export default function App() {
                         with studio lighting
                       </p>
                       <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                        <ImageWithFallback
-                          src={
-                            image_0ef793a5965fe79a80bdb0d1fd88d97304605580
-                          }
+                        <img
+                          src={featureImages.fashionModel}
                           alt="Fashion model example"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -549,8 +555,8 @@ export default function App() {
                         premium aesthetics
                       </p>
                       <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                        <ImageWithFallback
-                          src="https://images.unsplash.com/photo-1763120476143-3d8278fb3db3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxqZXdlbHJ5JTIwY2xvc2UlMjB1cCUyMHBob3RvZ3JhcGh5fGVufDF8fHx8MTc2NTkxMjQ4Mnww&ixlib=rb-4.1.0&q=80&w=1080"
+                        <img
+                          src={featureImages.jewelryCloseup}
                           alt="Jewelry close-up example"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -568,8 +574,8 @@ export default function App() {
                         media impact
                       </p>
                       <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                        <ImageWithFallback
-                          src="https://images.unsplash.com/photo-1630331384146-a8b2a79a9558?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9kdWN0JTIwcGhvdG9ncmFwaHklMjBmbGF0bGF5fGVufDF8fHx8MTc2NTkxMjQ4Mnww&ixlib=rb-4.1.0&q=80&w=1080"
+                        <img
+                          src={featureImages.flatlayPro}
                           alt="Flatlay example"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
