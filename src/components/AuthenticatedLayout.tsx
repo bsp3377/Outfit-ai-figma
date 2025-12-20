@@ -1,18 +1,19 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { 
-  Wand2, 
-  Image as ImageIcon, 
-  CreditCard, 
-  Settings, 
-  User, 
-  LogOut, 
-  Moon, 
+import {
+  Wand2,
+  Image as ImageIcon,
+  CreditCard,
+  Settings,
+  User,
+  LogOut,
+  Moon,
   Sun,
   Menu,
   X,
   Coins
 } from 'lucide-react';
 import logoImage from 'figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png';
+import { supabase } from '../utils/supabase';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
@@ -33,7 +34,34 @@ export function AuthenticatedLayout({
 }: AuthenticatedLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [userData, setUserData] = useState({ name: '', email: '' });
   const creditsRemaining = 87;
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserData({
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          email: user.email || '',
+        });
+      }
+    };
+    fetchUser();
+
+    // Listen for auth changes to update user data
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserData({
+          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || '',
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (isDark) {
@@ -62,8 +90,8 @@ export function AuthenticatedLayout({
       <div className="hidden lg:block sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img 
-              src={logoImage} 
+            <img
+              src={logoImage}
               alt="Outfit AI Studio"
               className="h-24 w-auto dark:invert dark:hue-rotate-180 transition-all"
             />
@@ -102,8 +130,8 @@ export function AuthenticatedLayout({
               {profileMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl py-2">
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-                    <p className="text-sm">Sarah Johnson</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">sarah@example.com</p>
+                    <p className="text-sm">{userData.name || 'Loading...'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">{userData.email}</p>
                   </div>
                   <button
                     onClick={() => {
@@ -132,8 +160,8 @@ export function AuthenticatedLayout({
       {/* Mobile: Top Bar */}
       <div className="lg:hidden sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="px-4 h-14 flex items-center justify-between">
-          <img 
-            src={logoImage} 
+          <img
+            src={logoImage}
             alt="Outfit AI Studio"
             className="h-16 w-auto dark:invert dark:hue-rotate-180 transition-all"
           />
@@ -166,16 +194,15 @@ export function AuthenticatedLayout({
             {sidebarItems.map(item => {
               const Icon = item.icon;
               const isActive = currentView === item.id;
-              
+
               return (
                 <button
                   key={item.id}
                   onClick={() => onViewChange(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                    isActive
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
@@ -197,16 +224,15 @@ export function AuthenticatedLayout({
           {mobileNavItems.map(item => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
-            
+
             return (
               <button
                 key={item.id}
                 onClick={() => onViewChange(item.id)}
-                className={`flex flex-col items-center gap-1 py-3 transition-all ${
-                  isActive
-                    ? 'text-purple-600 dark:text-purple-400'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
+                className={`flex flex-col items-center gap-1 py-3 transition-all ${isActive
+                  ? 'text-purple-600 dark:text-purple-400'
+                  : 'text-gray-600 dark:text-gray-400'
+                  }`}
               >
                 <Icon className="w-6 h-6" />
                 <span className="text-xs">{item.label}</span>

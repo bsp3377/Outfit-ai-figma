@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Lock, Moon, Sun, Globe, LogOut } from 'lucide-react';
+import { User, Mail, Lock, Moon, Sun, Globe, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { supabase } from '../utils/supabase';
 
 interface AccountSettingsProps {
   isDark: boolean;
@@ -9,47 +10,70 @@ interface AccountSettingsProps {
 }
 
 export function AccountSettings({ isDark, onToggleDark, onLogout }: AccountSettingsProps) {
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
-    name: 'Sarah Johnson',
-    email: 'sarah@example.com',
+    name: '',
+    email: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error) throw error;
+
+        if (user) {
+          setFormData(prev => ({
+            ...prev,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+            email: user.email || '',
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Profile updated successfully!');
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: formData.name }
+      });
+
+      if (error) throw error;
+      toast.success('Profile updated successfully!');
+    } catch (error: any) {
+      toast.error('Failed to update profile', { description: error.message });
+    }
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
-    toast.success('Password changed successfully!');
-    setFormData({ ...formData, currentPassword: '', newPassword: '', confirmPassword: '' });
-  };
-
-  const handleSaveApiKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsTestingKey(true);
-    saveGeminiApiKey(geminiKey);
-    
     try {
-      const isValid = await testGeminiConnection();
-      if (isValid) {
-        toast.success('Gemini API Key verified and saved!');
-      } else {
-        toast.error('Invalid API Key', {
-          description: 'Please check your key and try again.'
-        });
-      }
-    } catch (error) {
-      toast.error('Error verifying key');
-    } finally {
-      setIsTestingKey(false);
+      const { error } = await supabase.auth.updateUser({
+        password: formData.newPassword
+      });
+
+      if (error) throw error;
+      toast.success('Password changed successfully!');
+      setFormData({ ...formData, currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      toast.error('Failed to change password', { description: error.message });
     }
   };
 
@@ -164,14 +188,12 @@ export function AccountSettings({ isDark, onToggleDark, onLogout }: AccountSetti
           </div>
           <button
             onClick={onToggleDark}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              isDark ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDark ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                isDark ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDark ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
         </div>

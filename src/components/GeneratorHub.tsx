@@ -45,6 +45,8 @@ export function GeneratorHub() {
   const [logoFile, setLogoFile] = useState<UploadedFile | null>(null);
   const [inspiredTemplateFile, setInspiredTemplateFile] = useState<UploadedFile | null>(null);
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
+  const [autoSelectHairstyle, setAutoSelectHairstyle] = useState<boolean>(false);
+  const [autoSelectPose, setAutoSelectPose] = useState<boolean>(false);
 
   const [formData, setFormData] = useState({
     // Shared field
@@ -54,7 +56,7 @@ export function GeneratorHub() {
     age: '',
     ethnicity: 'American',
     ethnicityDescription: '',
-    hairstyle: 'sleek-straight-center',
+    hairstyle: 'long-soft-waves',
     hairstyleDescription: '',
     pose: 'standing',
     poseDescription: '',
@@ -318,10 +320,29 @@ export function GeneratorHub() {
       if (logoImageBase64) console.log('   - Including brand logo');
       if (inspiredTemplateBase64) console.log('   - Including inspired template reference');
 
+      // Prepare formData with auto-selected values if enabled
+      const finalFormData = { ...formData };
+
+      if (autoSelectHairstyle && hairstyleOptions.length > 0) {
+        // Filter out 'other' option and pick a random hairstyle
+        const validOptions = hairstyleOptions.filter(opt => opt.value !== 'other');
+        const randomIndex = Math.floor(Math.random() * validOptions.length);
+        finalFormData.hairstyle = validOptions[randomIndex].value;
+        console.log(`   - Auto-selected hairstyle: ${validOptions[randomIndex].label}`);
+      }
+
+      if (autoSelectPose && poseOptions.length > 0) {
+        // Filter out 'custom' option and pick a random pose
+        const validOptions = poseOptions.filter(opt => opt.value !== 'custom');
+        const randomIndex = Math.floor(Math.random() * validOptions.length);
+        finalFormData.pose = validOptions[randomIndex].value;
+        console.log(`   - Auto-selected pose: ${validOptions[randomIndex].label}`);
+      }
+
       const result = await generateImageWithGemini({
         productDescription,
         tabType: activeTab,
-        formData,
+        formData: finalFormData,
         productImages,
         logoImageBase64,
         logoImageMimeType,
@@ -474,7 +495,7 @@ export function GeneratorHub() {
       age: '',
       ethnicity: 'American',
       ethnicityDescription: '',
-      hairstyle: 'sleek-straight-center',
+      hairstyle: 'long-soft-waves',
       hairstyleDescription: '',
       pose: 'standing',
       poseDescription: '',
@@ -728,26 +749,97 @@ export function GeneratorHub() {
   const getHairstyleOptions = () => {
     if (formData.gender === 'Female' || formData.gender === 'Transgender') {
       return [
-        { value: 'sleek-straight-center', label: 'Sleek straight, center part' },
-        { value: 'sleek-straight-side', label: 'Sleek straight, side part' },
-        { value: 'soft-waves-center', label: 'Soft natural waves, center part' },
-        { value: 'low-ponytail-sleek', label: 'Low ponytail (sleek)' },
-        { value: 'low-bun-clean', label: 'Low bun (clean)' },
-        { value: 'half-up-half-down', label: 'Half-up half-down (simple)' },
-        { value: 'tucked-behind-ears', label: 'Tucked behind ears (clean face)' },
-        { value: 'short-bob-straight', label: 'Short bob, straight (neat)' },
+        // Long Hair
+        { value: 'long-soft-waves', label: 'Long - Soft waves or beachy waves' },
+        { value: 'long-sleek-straight', label: 'Long - Sleek and straight with center or side part' },
+        { value: 'long-hollywood-glamour', label: 'Long - Old Hollywood glamour waves' },
+        { value: 'long-loose-romantic-curls', label: 'Long - Loose romantic curls' },
+        { value: 'long-high-ponytail', label: 'Long - High ponytail (sleek or textured)' },
+        { value: 'long-low-ponytail', label: 'Long - Low ponytail with middle part' },
+        { value: 'long-half-up-half-down', label: 'Long - Half-up, half-down styles' },
+        // Medium Length
+        { value: 'medium-lob-waves', label: 'Medium - Lob (long bob) with soft waves' },
+        { value: 'medium-blunt-cut', label: 'Medium - Blunt cut with slight bend at ends' },
+        { value: 'medium-layered-volume', label: 'Medium - Layered with volume at roots' },
+        { value: 'medium-side-swept', label: 'Medium - Side-swept with deep part' },
+        { value: 'medium-wet-look', label: 'Medium - Wet-look slicked back' },
+        // Short Hair
+        { value: 'short-classic-bob', label: 'Short - Classic bob (chin-length)' },
+        { value: 'short-pixie-cut', label: 'Short - Pixie cut (textured or sleek)' },
+        { value: 'short-french-bob-bangs', label: 'Short - French bob with bangs' },
+        { value: 'short-cropped-finger-waves', label: 'Short - Cropped with finger waves' },
+        { value: 'short-slicked-back', label: 'Short - Slicked-back short styles' },
+        // Updos
+        { value: 'updo-low-chignon', label: 'Updo - Low chignon or bun' },
+        { value: 'updo-sleek-high-bun', label: 'Updo - Sleek high bun' },
+        { value: 'updo-messy-textured-bun', label: 'Updo - Messy textured bun' },
+        { value: 'updo-french-twist', label: 'Updo - French twist' },
+        { value: 'updo-braided', label: 'Updo - Braided updo' },
+        { value: 'updo-elegant-ponytail', label: 'Updo - Elegant ponytail with wrapped base' },
+        // Editorial/High Fashion
+        { value: 'editorial-wet-look', label: 'Editorial - Slicked-back wet look' },
+        { value: 'editorial-extreme-volume', label: 'Editorial - Extreme volume and teased styles' },
+        { value: 'editorial-sculptural', label: 'Editorial - Sculptural or architectural shapes' },
+        { value: 'editorial-braids', label: 'Editorial - Braids (cornrows, Dutch braids, fishtail)' },
+        { value: 'editorial-60s-bouffant', label: 'Editorial - 60s bouffant' },
+        { value: 'editorial-70s-farrah-waves', label: 'Editorial - 70s Farrah waves' },
+        { value: 'editorial-90s-supermodel-blowout', label: 'Editorial - 90s supermodel blowout' },
+        // With Bangs
+        { value: 'bangs-curtain', label: 'With Bangs - Curtain bangs' },
+        { value: 'bangs-blunt-fringe', label: 'With Bangs - Blunt fringe' },
+        { value: 'bangs-side-swept', label: 'With Bangs - Side-swept bangs' },
+        { value: 'bangs-wispy-micro', label: 'With Bangs - Wispy or micro bangs' },
+        // Other
         { value: 'other', label: 'Other (describe below)' },
       ];
     } else if (formData.gender === 'Male') {
       return [
-        { value: 'clean-side-part', label: 'Clean side part' },
-        { value: 'short-textured-crop', label: 'Short textured crop' },
-        { value: 'crew-cut', label: 'Crew cut' },
-        { value: 'fade-short-top', label: 'Fade + short top' },
-        { value: 'slick-back-light', label: 'Slick back (light)' },
-        { value: 'natural-curls-neat', label: 'Natural curls (neat)' },
-        { value: 'buzz-cut-clean', label: 'Buzz cut (clean)' },
-        { value: 'medium-combed-back', label: 'Medium combed back (simple)' },
+        // Classic/Commercial
+        { value: 'classic-side-part', label: 'Classic - Side part with tapered sides' },
+        { value: 'classic-slicked-back', label: 'Classic - Slicked back with shine' },
+        { value: 'classic-crew-cut', label: 'Classic - Clean crew cut' },
+        { value: 'classic-textured-quiff', label: 'Classic - Textured quiff' },
+        { value: 'classic-brushed-back', label: 'Classic - Brushed back with volume' },
+        { value: 'classic-natural-wavy', label: 'Classic - Natural wavy with light product' },
+        // Modern/Editorial
+        { value: 'modern-messy-crop', label: 'Modern - Messy textured crop' },
+        { value: 'modern-french-crop', label: 'Modern - French crop with fringe' },
+        { value: 'modern-undercut', label: 'Modern - Undercut with length on top' },
+        { value: 'modern-fade-styled', label: 'Modern - Fade with styled top' },
+        { value: 'modern-curtain-hair', label: 'Modern - Curtain hair (middle part with flow)' },
+        { value: 'modern-grown-out', label: 'Modern - Grown-out tousled look' },
+        // Short Styles
+        { value: 'short-buzz-cut', label: 'Short - Buzz cut' },
+        { value: 'short-skin-fade', label: 'Short - Skin fade' },
+        { value: 'short-high-tight', label: 'Short - High and tight' },
+        { value: 'short-caesar', label: 'Short - Caesar cut' },
+        { value: 'short-textured-crop', label: 'Short - Textured short crop' },
+        { value: 'short-clean-shaved', label: 'Short - Clean shaved head' },
+        // Medium to Long
+        { value: 'medium-slicked-back', label: 'Medium - Slicked back medium length' },
+        { value: 'medium-man-bun', label: 'Medium - Man bun or top knot' },
+        { value: 'medium-shoulder-length', label: 'Medium - Shoulder-length with natural texture' },
+        { value: 'medium-wavy-surfer', label: 'Medium - Wavy surfer style' },
+        { value: 'medium-pompadour', label: 'Medium - Pompadour (modern or vintage)' },
+        { value: 'medium-pushed-back', label: 'Medium - Pushed back with volume' },
+        // Textured/Curly
+        { value: 'curly-natural-defined', label: 'Curly - Natural curls with definition' },
+        { value: 'curly-afro', label: 'Curly - Afro (shaped or picked out)' },
+        { value: 'curly-twist-outs', label: 'Curly - Twist-outs or coils' },
+        { value: 'curly-fringe', label: 'Curly - Curly fringe' },
+        { value: 'curly-tapered-top', label: 'Curly - Tapered sides with curly top' },
+        // Retro/Editorial
+        { value: 'retro-50s-pompadour', label: 'Retro - 1950s pompadour' },
+        { value: 'retro-greaser', label: 'Retro - Greaser slick back' },
+        { value: 'retro-70s-shag', label: 'Retro - 70s shag' },
+        { value: 'retro-80s-blowout', label: 'Retro - 80s voluminous blowout' },
+        { value: 'retro-90s-curtains', label: 'Retro - 90s curtains' },
+        // Facial Hair Pairings
+        { value: 'facial-clean-shaven', label: 'Facial Hair - Clean shaven for classic looks' },
+        { value: 'facial-stubble', label: 'Facial Hair - Stubble for rugged commercial' },
+        { value: 'facial-groomed-beard', label: 'Facial Hair - Groomed beard' },
+        { value: 'facial-mustache', label: 'Facial Hair - Mustache for editorial or vintage themes' },
+        // Other
         { value: 'other', label: 'Other (describe below)' },
       ];
     } else if (formData.gender === 'Girl') {
@@ -1107,18 +1199,38 @@ export function GeneratorHub() {
               )}
 
               <div>
-                <label className="block text-sm mb-2">Hairstyle</label>
-                <select
-                  value={formData.hairstyle}
-                  onChange={(e) => setFormData({ ...formData, hairstyle: e.target.value })}
-                  disabled={!!referenceImage}
-                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
-                >
-                  {hairstyleOptions.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm">Hairstyle</label>
+                  <button
+                    type="button"
+                    onClick={() => setAutoSelectHairstyle(!autoSelectHairstyle)}
+                    disabled={!!referenceImage}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-full transition-all ${autoSelectHairstyle
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      } ${referenceImage ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-80'}`}
+                  >
+                    <span className={`w-3 h-3 rounded-full transition-all ${autoSelectHairstyle ? 'bg-white' : 'bg-gray-400'}`} />
+                    Auto Select
+                  </button>
+                </div>
+                {autoSelectHairstyle ? (
+                  <div className="w-full px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-700 rounded-lg text-purple-700 dark:text-purple-300 text-sm">
+                    ✨ AI will choose a random hairstyle for this generation
+                  </div>
+                ) : (
+                  <select
+                    value={formData.hairstyle}
+                    onChange={(e) => setFormData({ ...formData, hairstyle: e.target.value })}
+                    disabled={!!referenceImage}
+                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${referenceImage ? 'opacity-60 cursor-not-allowed' : ''
+                      }`}
+                  >
+                    {hairstyleOptions.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {formData.hairstyle === 'other' && (
@@ -1137,16 +1249,35 @@ export function GeneratorHub() {
               )}
 
               <div>
-                <label className="block text-sm mb-2">Pose</label>
-                <select
-                  value={formData.pose}
-                  onChange={(e) => setFormData({ ...formData, pose: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                >
-                  {poseOptions.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm">Pose</label>
+                  <button
+                    type="button"
+                    onClick={() => setAutoSelectPose(!autoSelectPose)}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-full transition-all ${autoSelectPose
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      } hover:opacity-80`}
+                  >
+                    <span className={`w-3 h-3 rounded-full transition-all ${autoSelectPose ? 'bg-white' : 'bg-gray-400'}`} />
+                    Auto Select
+                  </button>
+                </div>
+                {autoSelectPose ? (
+                  <div className="w-full px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-700 rounded-lg text-purple-700 dark:text-purple-300 text-sm">
+                    ✨ AI will choose a random pose for this generation
+                  </div>
+                ) : (
+                  <select
+                    value={formData.pose}
+                    onChange={(e) => setFormData({ ...formData, pose: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  >
+                    {poseOptions.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {formData.pose === 'custom' && (
@@ -1462,6 +1593,67 @@ export function GeneratorHub() {
                   Describe the accessory/jewelry you want to generate a photo for.
                 </p>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-2">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Transgender">Transgender</option>
+                    <option value="Boy">Boy</option>
+                    <option value="Girl">Girl</option>
+                    <option value="Infant">Infant</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-2">Age</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="e.g., 25"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm mb-2">Ethnicity</label>
+                <select
+                  value={formData.ethnicity}
+                  onChange={(e) => setFormData({ ...formData, ethnicity: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                >
+                  <option value="American">American</option>
+                  <option value="African">African</option>
+                  <option value="Asian">Asian</option>
+                  <option value="Indian">Indian</option>
+                  <option value="Middle Eastern">Middle Eastern</option>
+                  <option value="Latin">Latin</option>
+                  <option value="European">European</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {formData.ethnicity === 'Other' && (
+                <div>
+                  <label className="block text-sm mb-2">Describe Ethnicity</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Mixed heritage, Pacific Islander"
+                    value={formData.ethnicityDescription}
+                    onChange={(e) => setFormData({ ...formData, ethnicityDescription: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm mb-2">Shot Style (Universal Presets)</label>
@@ -1895,11 +2087,14 @@ export function GeneratorHub() {
                   </div>
 
                   <div>
-                    <label className="block text-sm mb-2">Environment (if Lifestyle Scene)</label>
+                    <label className={`block text-sm mb-2 ${formData.creativeShotType !== 'lifestyle-scene' ? 'text-gray-400 dark:text-gray-600' : ''}`}>
+                      Environment {formData.creativeShotType !== 'lifestyle-scene' && '(Select Lifestyle Scene to enable)'}
+                    </label>
                     <select
                       value={formData.creativeEnvironment}
                       onChange={(e) => setFormData({ ...formData, creativeEnvironment: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      disabled={formData.creativeShotType !== 'lifestyle-scene'}
+                      className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent ${formData.creativeShotType !== 'lifestyle-scene' ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <option value="kitchen">Kitchen</option>
                       <option value="bathroom">Bathroom</option>
