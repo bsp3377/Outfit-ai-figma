@@ -1,60 +1,12 @@
 import { Play, CheckCircle2, Clock, Users } from 'lucide-react';
+import { useVideoTutorials } from '../utils/useVideoTutorials';
 
 interface HowItWorksProps {
   onNavigate: (page: 'home' | 'pricing' | 'auth' | 'howItWorks') => void;
 }
 
 export function HowItWorks({ onNavigate }: HowItWorksProps) {
-  const tutorials = [
-    {
-      id: 1,
-      title: 'Getting Started with Outfit AI',
-      description: 'Learn the basics of uploading your products and generating your first AI model photo in under 5 minutes.',
-      videoId: 'dQw4w9WgXcQ', // Replace with actual YouTube video ID
-      duration: '4:32',
-      views: '12K',
-    },
-    {
-      id: 2,
-      title: 'Advanced Model Selection',
-      description: 'Discover how to choose the perfect model type, pose, and styling for your product category.',
-      videoId: 'dQw4w9WgXcQ', // Replace with actual YouTube video ID
-      duration: '6:15',
-      views: '8.5K',
-    },
-    {
-      id: 3,
-      title: 'Creating Perfect Flatlay Compositions',
-      description: 'Master the art of flatlay photography with AI. Learn composition tips and background selection.',
-      videoId: 'dQw4w9WgXcQ', // Replace with actual YouTube video ID
-      duration: '5:48',
-      views: '10K',
-    },
-    {
-      id: 4,
-      title: 'Batch Processing & Workflow Optimization',
-      description: 'Process multiple products efficiently and integrate Outfit AI into your existing e-commerce workflow.',
-      videoId: 'dQw4w9WgXcQ', // Replace with actual YouTube video ID
-      duration: '7:20',
-      views: '6.2K',
-    },
-    {
-      id: 5,
-      title: 'Export & Integration Best Practices',
-      description: 'Learn how to export your images in the right format and integrate them with Shopify, WooCommerce, and more.',
-      videoId: 'dQw4w9WgXcQ', // Replace with actual YouTube video ID
-      duration: '5:10',
-      views: '9.1K',
-    },
-    {
-      id: 6,
-      title: 'Tips from Professional Users',
-      description: 'Real success stories and tips from brands using Outfit AI to scale their product photography.',
-      videoId: 'dQw4w9WgXcQ', // Replace with actual YouTube video ID
-      duration: '8:45',
-      views: '15K',
-    },
-  ];
+  const { tutorials, featuredVideo, isLoading } = useVideoTutorials();
 
   const quickSteps = [
     {
@@ -84,7 +36,7 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
               How Outfit AI Works
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Transform your product photos into studio-quality images with AI. 
+              Transform your product photos into studio-quality images with AI.
               Watch our step-by-step tutorials and start creating professional content today.
             </p>
           </div>
@@ -92,7 +44,7 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
           {/* Quick Steps */}
           <div className="grid md:grid-cols-3 gap-6 mb-16">
             {quickSteps.map((item) => (
-              <div 
+              <div
                 key={item.step}
                 className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all"
               >
@@ -108,7 +60,7 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
           </div>
 
           <div className="text-center">
-            <button 
+            <button
               onClick={() => onNavigate('auth')}
               className="inline-block px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all text-lg"
             >
@@ -130,13 +82,13 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {tutorials.map((tutorial) => (
-              <div 
+              <div
                 key={tutorial.id}
                 className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-xl transition-all group"
               >
                 {/* Video Thumbnail */}
                 <div className="relative aspect-video bg-gray-900 overflow-hidden cursor-pointer">
-                  <img 
+                  <img
                     src={`https://img.youtube.com/vi/${tutorial.videoId}/maxresdefault.jpg`}
                     alt={tutorial.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -165,7 +117,7 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
                       <Users className="w-4 h-4" />
                       {tutorial.views} views
                     </span>
-                    <a 
+                    <a
                       href={`https://www.youtube.com/watch?v=${tutorial.videoId}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -186,9 +138,9 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
       <section className="py-20 bg-white dark:bg-gray-950">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl mb-4">Complete Walkthrough</h2>
+            <h2 className="text-3xl sm:text-4xl mb-4">{featuredVideo.title}</h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Watch our comprehensive guide to Outfit AI (15 minutes)
+              {featuredVideo.description}
             </p>
           </div>
 
@@ -197,8 +149,8 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
             <iframe
               width="100%"
               height="100%"
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-              title="Complete Outfit AI Walkthrough"
+              src={`https://www.youtube.com/embed/${featuredVideo.videoId}`}
+              title={featuredVideo.title}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -211,13 +163,13 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
               Ready to create stunning product photos?
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
+              <button
                 onClick={() => onNavigate('auth')}
                 className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all"
               >
                 Start Free Trial
               </button>
-              <button 
+              <button
                 onClick={() => onNavigate('pricing')}
                 className="px-8 py-4 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg hover:scale-105 transition-all"
               >
@@ -254,7 +206,7 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
                 a: 'We offer a 10-generation free trial so you can test the service. Paid credits are non-refundable but never expire.',
               },
             ].map((faq, index) => (
-              <div 
+              <div
                 key={index}
                 className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-6"
               >
