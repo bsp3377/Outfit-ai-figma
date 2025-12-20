@@ -29,7 +29,7 @@ import { AccountSettings } from "./components/AccountSettings";
 import { Toaster } from "sonner@2.0.3";
 import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
 import { supabase } from "./utils/supabase";
-import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage } from "./utils/useSiteContent";
+import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent } from "./utils/useSiteContent";
 
 export default function App() {
   const [isDark, setIsDark] = useState(false);
@@ -47,6 +47,7 @@ export default function App() {
   const heroImages = useHeroImages();
   const featureImages = useFeatureImages();
   const logoData = useLogoImage();
+  const landingContent = useLandingContent();
 
   useEffect(() => {
     // Check active session - wrapped in try-catch to handle missing Supabase config
@@ -263,29 +264,26 @@ export default function App() {
                     {/* Hero Content */}
                     <div className="text-center lg:text-left">
                       <h1 className="text-4xl sm:text-5xl lg:text-6xl mb-6">
-                        Generate studio-quality product photos{" "}
+                        {landingContent.heroTitle}{" "}
                         <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                          instantly
+                          {landingContent.heroTitleHighlight}
                         </span>
                       </h1>
                       <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto lg:mx-0">
-                        Transform your product images into
-                        professional model shots, jewelry
-                        close-ups, and stylish flatlays with AI.
-                        No photoshoot required.
+                        {landingContent.heroSubtitle}
                       </p>
                       <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                         <a
                           href="#start"
                           className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all text-lg"
                         >
-                          Start Free
+                          {landingContent.heroCtaPrimary}
                         </a>
                         <a
                           href="#demo"
                           className="px-8 py-4 border-2 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600 rounded-lg hover:scale-105 hover:shadow-md transition-all text-lg"
                         >
-                          View Demo
+                          {landingContent.heroCtaSecondary}
                         </a>
                       </div>
                     </div>
@@ -377,12 +375,10 @@ export default function App() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center mb-12">
                     <h2 className="text-3xl sm:text-4xl mb-4">
-                      See the transformation
+                      {landingContent.galleryTitle}
                     </h2>
                     <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                      Drag the slider to compare before and
-                      after results across different product
-                      categories
+                      {landingContent.gallerySubtitle}
                     </p>
                   </div>
 
@@ -398,10 +394,10 @@ export default function App() {
                         />
                       </div>
                       <h3 className="text-center mb-1">
-                        Apparel
+                        {landingContent.apparelTitle}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                        From flat product to runway ready
+                        {landingContent.apparelDesc}
                       </p>
                     </div>
 
@@ -416,10 +412,10 @@ export default function App() {
                         />
                       </div>
                       <h3 className="text-center mb-1">
-                        Jewelry
+                        {landingContent.jewelryTitle}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                        Showcase elegance on real models
+                        {landingContent.jewelryDesc}
                       </p>
                     </div>
 
@@ -725,7 +721,8 @@ export default function App() {
             />
           )}
         </>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }

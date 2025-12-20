@@ -176,3 +176,118 @@ export function useLogoImage() {
         logo: content['logo']?.image_url || '',
     };
 }
+
+/**
+ * Hook for all landing page text content
+ */
+export function useLandingContent() {
+    const { content, isLoading, getText } = useSiteContent('landing');
+
+    // Default text content (current hardcoded values)
+    const defaults = {
+        // Hero section
+        hero_title: 'Generate studio-quality product photos',
+        hero_title_highlight: 'instantly',
+        hero_subtitle: 'Transform your product images into professional model shots, jewelry close-ups, and stylish flatlays with AI. No photoshoot required.',
+        hero_cta_primary: 'Start Free',
+        hero_cta_secondary: 'View Demo',
+
+        // 3 Steps section
+        step1_title: 'Upload',
+        step1_desc: 'Drop your product image',
+        step2_title: 'Choose Style',
+        step2_desc: 'Select model & background',
+        step3_title: 'Generate',
+        step3_desc: 'AI creates your photo',
+
+        // See the transformation section
+        gallery_title: 'See the transformation',
+        gallery_subtitle: 'Drag the slider to compare before and after results across different product categories',
+
+        // Category labels
+        apparel_title: 'Apparel',
+        apparel_desc: 'From flat product to runway ready',
+        jewelry_title: 'Jewelry',
+        jewelry_desc: 'Showcase elegance on real models',
+        shoes_title: 'Footwear',
+        shoes_desc: 'Step into professional styling',
+        handbag_title: 'Accessories',
+        handbag_desc: 'Elevate your accessories line',
+        watch_title: 'Watches',
+        watch_desc: 'Timeless pieces, perfect shots',
+        fashion_title: 'Fashion',
+        fashion_desc: 'Professional studio quality instantly',
+
+        // Transform section
+        transform_title: 'Transform any product, any style',
+        transform_subtitle: 'Professional photography made accessible with AI-powered generation',
+
+        // Feature cards
+        feature_model_title: 'Fashion Model',
+        feature_model_desc: 'Place your apparel on diverse AI models with studio lighting',
+        feature_jewelry_title: 'Jewelry Close-up',
+        feature_jewelry_desc: 'Macro shots with perfect reflections and premium aesthetics',
+        feature_flatlay_title: 'Flatlay Pro',
+        feature_flatlay_desc: 'Styled overhead compositions for social media impact',
+
+        // CTA section
+        cta_title: 'Ready to transform your product photos?',
+        cta_subtitle: 'Join thousands of brands using AI to create stunning visuals',
+        cta_button: 'Start Creating for Free',
+        cta_note: 'No credit card required • 10 free generations',
+    };
+
+    return {
+        isLoading,
+        // Hero
+        heroTitle: getText('hero_title', defaults.hero_title),
+        heroTitleHighlight: getText('hero_title_highlight', defaults.hero_title_highlight),
+        heroSubtitle: getText('hero_subtitle', defaults.hero_subtitle),
+        heroCtaPrimary: getText('hero_cta_primary', defaults.hero_cta_primary),
+        heroCtaSecondary: getText('hero_cta_secondary', defaults.hero_cta_secondary),
+
+        // Steps
+        step1Title: getText('step1_title', defaults.step1_title),
+        step1Desc: getText('step1_desc', defaults.step1_desc),
+        step2Title: getText('step2_title', defaults.step2_title),
+        step2Desc: getText('step2_desc', defaults.step2_desc),
+        step3Title: getText('step3_title', defaults.step3_title),
+        step3Desc: getText('step3_desc', defaults.step3_desc),
+
+        // Gallery
+        galleryTitle: getText('gallery_title', defaults.gallery_title),
+        gallerySubtitle: getText('gallery_subtitle', defaults.gallery_subtitle),
+
+        // Categories
+        apparelTitle: getText('apparel_title', defaults.apparel_title),
+        apparelDesc: getText('apparel_desc', defaults.apparel_desc),
+        jewelryTitle: getText('jewelry_title', defaults.jewelry_title),
+        jewelryDesc: getText('jewelry_desc', defaults.jewelry_desc),
+        shoesTitle: getText('shoes_title', defaults.shoes_title),
+        shoesDesc: getText('shoes_desc', defaults.shoes_desc),
+        handbagTitle: getText('handbag_title', defaults.handbag_title),
+        handbagDesc: getText('handbag_desc', defaults.handbag_desc),
+        watchTitle: getText('watch_title', defaults.watch_title),
+        watchDesc: getText('watch_desc', defaults.watch_desc),
+        fashionTitle: getText('fashion_title', defaults.fashion_title),
+        fashionDesc: getText('fashion_desc', defaults.fashion_desc),
+
+        // Transform section
+        transformTitle: getText('transform_title', defaults.transform_title),
+        transformSubtitle: getText('transform_subtitle', defaults.transform_subtitle),
+
+        // Feature cards
+        featureModelTitle: getText('feature_model_title', defaults.feature_model_title),
+        featureModelDesc: getText('feature_model_desc', defaults.feature_model_desc),
+        featureJewelryTitle: getText('feature_jewelry_title', defaults.feature_jewelry_title),
+        featureJewelryDesc: getText('feature_jewelry_desc', defaults.feature_jewelry_desc),
+        featureFlatlayTitle: getText('feature_flatlay_title', defaults.feature_flatlay_title),
+        featureFlatlayDesc: getText('feature_flatlay_desc', defaults.feature_flatlay_desc),
+
+        // CTA
+        ctaTitle: getText('cta_title', defaults.cta_title),
+        ctaSubtitle: getText('cta_subtitle', defaults.cta_subtitle),
+        ctaButton: getText('cta_button', defaults.cta_button),
+        ctaNote: getText('cta_note', defaults.cta_note),
+    };
+}
