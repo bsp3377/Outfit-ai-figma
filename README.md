@@ -1,182 +1,297 @@
-# Outfit AI Generator
+# 🎨 VirtualOutfit AI
 
-**Outfit AI** is a cutting-edge, AI-powered image generation platform tailored for e-commerce brands, photographers, and content creators. It dramatically reduces the cost and time of professional product photography by generating studio-quality results instantly.
+<div align="center">
 
----
+![VirtualOutfit AI](https://img.shields.io/badge/VirtualOutfit-AI-purple?style=for-the-badge&logo=sparkles)
+[![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.3.5-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 
-## 📖 Application Guide
+**AI-Powered E-commerce Photography Generator**
 
-This application is divided into public marketing pages and a secure, feature-rich dashboard.
+*Transform your product photos into stunning, studio-quality images with AI-generated models, backgrounds, and professional styling.*
 
-### 🌐 Public Pages
+[Live Demo](#) • [Documentation](#) • [Report Bug](#) • [Request Feature](#)
 
-#### 1. Landing Page (Home)
-*   **Hero Section**: Clear value proposition with "Start Free" CTA and side-by-side comparisons.
-*   **Before/After Sliders**: Interactive demonstration of the AI's capabilities across Fashion, Jewellery, Footwear, and Accessories.
-*   **Feature Grid**: Highlights key capabilities like Fashion Model replacement, Macro Close-ups, and Flatlay composition.
-*   **Social Proof**: Testimonials from e-commerce leaders (StyleCo, LuxeGems).
-
-#### 2. How It Works
-*   **Video Tutorials**: A curated library of tutorials covering "Getting Started," "Advanced Model Selection," and "Flatlay Tips."
-*   **Step-by-Step Guide**: Visual breakdown of the 3-step process: Upload -> Choose Style -> Generate.
-*   **FAQ**: Common questions about file formats, speed, and trial limits.
-
-#### 3. Pricing & Plans
-*   **Tiered Plans**:
-    *   **Free Trial**: 10 generations to test the waters.
-    *   **Pro (₹999/mo)**: 100 generations, priority speed, auto-save, and commercial rights.
-    *   **Corporate**: Custom solutions for high-volume enterprise needs.
-*   **Comparison Table**: Detailed feature-by-feature breakdown of all plans.
+</div>
 
 ---
 
-### ⚡ Dashboard (Authenticated)
+## � Project Overview
 
-#### 1. Generator Hub (The Core)
-The primary workspace for creating images.
-*   **Three Specialized Modes**:
-    *   **Apparel**: For clothing on human models including detailed pose and ethnicity controls.
-    *   **Accessories**: optimized macros for jewellery, bags, and shoes.
-    *   **Creative**: For styling flatlays and artistic product compositions.
-*   **Advanced Controls**:
-    *   **Color Picker**: Select exact HEX backgrounds or create custom gradients (Linear/Radial).
-    *   **Prompt Engineering**: Under-the-hood logic translates UI selections into complex AI prompts.
-    *   **Magic Upload**: Drag-and-drop interface supporting multiple files.
-*   **Results View**:
-    *   Real-time generation status.
-    *   **Action Overlay**: Download, Like, Delete, or "Use as Reference" directly from the image card.
+**VirtualOutfit AI** is a cutting-edge SaaS platform that revolutionizes e-commerce photography by leveraging Google's Gemini AI to generate professional-quality product images. The platform enables fashion brands, jewelry retailers, and e-commerce businesses to create stunning visual content without expensive photoshoots.
 
-#### 2. Library (Asset Management)
-*   **Smart Filtering**: Filter by category (Fashion/Jewellery/Flatlay) or "Liked" status.
-*   **Layout Options**: Toggle between Grid and List views.
-*   **Search**: Instantly find past generations by keyword.
-*   **Management**: Bulk delete or download your assets.
+### What VirtualOutfit AI Does:
+- **Fashion Photography**: Generate realistic AI models wearing your apparel with customizable poses, hairstyles, ethnicities, and backgrounds
+- **Jewelry/Accessories**: Create elegant product shots with AI models showcasing watches, necklaces, sunglasses, and more
+- **Creative Flatlay**: Design beautiful product compositions with professional lighting and styling
 
-#### 3. Billing & Credits
-*   **Credit Tracking**: Visual progress bar showing monthly credit usage.
-*   **Plan Management**: Upgrade/downgrade plans or purchase top-up "Credit Packs".
-*   **Transaction History**: View past payments and download invoices.
-
-#### 4. Account Settings
-*   **Profile**: Update name and email.
-*   **Security**: Change password.
-*   **Appearance**: Toggle between Light and Dark themes.
 ---
 
-## 🛠️ Database Schema (Supabase SQL)
+## ✨ Key Features
 
-Run the following SQL in your **Supabase SQL Editor** to set up all necessary tables, security policies, and automation.
+### 🎯 Core Functionality
+| Feature | Description |
+|---------|-------------|
+| **AI Image Generation** | Generate studio-quality product photos using Google Gemini 3 Pro Image model |
+| **Multi-Product Upload** | Upload up to 5 product images to feature in a single generated image |
+| **Brand Logo Integration** | Subtly integrate your brand logo into generated backgrounds |
+| **Style Templates** | Use inspiration templates to match specific aesthetics |
 
-### 1. Profiles (User Data)
-Automatically creates a profile when a new user signs up.
+### 👤 User Management
+| Feature | Description |
+|---------|-------------|
+| **Supabase Authentication** | Secure email/password and OAuth (Google, Apple) sign-in |
+| **User Profiles** | Auto-populated profile information after signup |
+| **Credits System** | Free tier with 10 credits; Pro and Corporate plans available |
+| **Image Library** | Save, organize, and manage generated images |
 
-```sql
--- Create a table for public user profiles
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  email TEXT,
-  full_name TEXT,
-  avatar_url TEXT,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+### 🎨 Customization Options
+| Feature | Description |
+|---------|-------------|
+| **Model Customization** | Gender, age, ethnicity, 35+ hairstyles, and 15+ poses |
+| **Auto-Select Mode** | Let AI randomly choose hairstyles and poses for variety |
+| **Background Control** | Studio, outdoor, urban, luxury, botanical, and custom colors |
+| **Lighting Presets** | Softbox, natural, dramatic, rim lighting, and more |
+| **Camera Settings** | Portrait, wide-angle, macro, and custom camera looks |
 
--- Enable Row Level Security (RLS)
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+### 📱 Responsive Design
+| Feature | Description |
+|---------|-------------|
+| **Desktop Layout** | Full sidebar navigation with spacious workspace |
+| **Mobile Optimized** | Bottom tab navigation with touch-friendly controls |
+| **Dark Mode** | Full dark/light theme support |
 
--- Policies
-CREATE POLICY "Users can view own profile" ON profiles 
-  FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON profiles 
-  FOR UPDATE USING (auth.uid() = id);
+---
 
--- Function to handle new user signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name');
-  
-  -- Also initialize user credits
-  INSERT INTO public.user_credits (user_id, credits_remaining, plan_tier)
-  VALUES (new.id, 10, 'free');
-  
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+## 🛠️ Tech Stack
 
--- Trigger the function on signup
-CREATE OR REPLACE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+### Frontend
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React** | 18.3.1 | UI Component Library |
+| **Vite** | 6.3.5 | Build Tool & Dev Server |
+| **Tailwind CSS** | 4.x | Utility-First Styling |
+| **Radix UI** | Latest | Accessible UI Primitives |
+| **Lucide React** | 0.487.0 | Icon Library |
+| **Sonner** | 2.0.3 | Toast Notifications |
+| **Recharts** | 2.15.2 | Data Visualization |
+
+### Backend & Database
+| Technology | Purpose |
+|------------|---------|
+| **Supabase Auth** | User authentication (email, Google, Apple) |
+| **Supabase Database** | PostgreSQL with Row Level Security |
+| **Supabase Storage** | Image storage for generated & uploaded assets |
+
+### AI/ML Integration
+| Technology | Purpose |
+|------------|---------|
+| **Google Gemini 3 Pro Image** | AI image generation with multimodal input |
+| **Google Gemini 2.5 Flash Lite** | Text prompt generation fallback |
+
+### Additional Libraries
+| Library | Purpose |
+|---------|---------|
+| **Embla Carousel** | Image carousels and galleries |
+| **React Hook Form** | Form state management |
+| **Motion** | Animations and transitions |
+| **Vaul** | Drawer components |
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL | ✅ Yes |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key | ✅ Yes |
+| `VITE_GEMINI_API_KEY` | Google Gemini API key for AI generation | ✅ Yes |
+
+### Example `.env` Template:
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Google Gemini AI
+VITE_GEMINI_API_KEY=your-gemini-api-key-here
 ```
 
-### 2. Generated Images
-Stores your AI generation history.
+> ⚠️ **Important**: Never commit your `.env` file to version control. The `.gitignore` file is pre-configured to exclude it.
 
-```sql
-CREATE TABLE generated_images (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  image_url TEXT NOT NULL, -- Currently stores Data URL, can change to Storage URL
-  generation_type TEXT CHECK (generation_type IN ('fashion', 'jewellery', 'flatlay')),
-  prompt_used TEXT,
-  is_liked BOOLEAN DEFAULT false,
-  is_auto_saved BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+---
 
-ALTER TABLE generated_images ENABLE ROW LEVEL SECURITY;
+## 🏗️ Architecture & Project Structure
 
-CREATE POLICY "Users can view own images" ON generated_images 
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own images" ON generated_images 
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own images" ON generated_images 
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own images" ON generated_images 
-  FOR DELETE USING (auth.uid() = user_id);
 ```
-
-### 3. User Credits & Plans
-Manages billing limits and subscription status.
-
-```sql
-CREATE TABLE user_credits (
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  credits_remaining INT DEFAULT 10,
-  plan_tier TEXT DEFAULT 'free' CHECK (plan_tier IN ('free', 'pro', 'corporate')),
-  renewal_date TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE user_credits ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own credits" ON user_credits 
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Only service role (backend) should update credits, but for MVP we allow read.
-```
-
-### 4. Transactions (Optional for MVP)
-Logs user purchases and credit top-ups.
-
-```sql
-CREATE TABLE user_transactions (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  amount TEXT, -- e.g. "₹999"
-  credits_added INT,
-  description TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE user_transactions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own transactions" ON user_transactions 
-  FOR SELECT USING (auth.uid() = user_id);
+VirtualOutfit-AI/
+├── 📁 src/
+│   ├── 📁 assets/                 # Static images and Figma exports
+│   ├── 📁 components/             # React components
+│   │   ├── 📁 ui/                 # Radix-based UI primitives (48 components)
+│   │   ├── � figma/              # Figma-imported components
+│   │   ├── AccountSettings.tsx    # User profile & settings
+│   │   ├── Auth.tsx               # Authentication forms
+│   │   ├── AuthenticatedLayout.tsx # Main app layout with sidebar
+│   │   ├── BillingSettings.tsx    # Subscription & payment
+│   │   ├── ColorPicker.tsx        # Advanced color selection
+│   │   ├── GeneratorHub.tsx       # Main AI generation interface
+│   │   ├── HowItWorks.tsx         # Tutorial & documentation
+│   │   ├── Library.tsx            # Generated images gallery
+│   │   ├── Pricing.tsx            # Pricing plans display
+│   │   └── TemplateSelector.tsx   # Inspiration template picker
+│   ├── 📁 utils/
+│   │   ├── gemini-api.ts          # Google Gemini AI integration
+│   │   ├── supabase.ts            # Supabase client configuration
+│   │   ├── useSiteContent.ts      # CMS content hooks
+│   │   └── useVideoTutorials.ts   # Video tutorials hook
+│   ├── 📁 styles/                 # Additional stylesheets
+│   ├── App.tsx                    # Main application component
+│   ├── main.tsx                   # React entry point
+│   └── index.css                  # Global Tailwind styles
+├── 📄 index.html                  # HTML entry point
+├── 📄 package.json                # Dependencies & scripts
+├── 📄 vite.config.ts              # Vite configuration
+├── 📄 supabase-schema.sql         # Database schema & migrations
+└── 📄 .env                        # Environment variables (not committed)
 ```
 
 ---
+
+## 📊 Database Schema
+
+The application uses Supabase PostgreSQL with the following tables:
+
+| Table | Purpose |
+|-------|---------|
+| `profiles` | User profile data linked to Supabase Auth |
+| `user_credits` | Subscription plans and available credits |
+| `generated_images` | AI-generated image history |
+| `uploaded_assets` | User-uploaded products, logos, templates |
+| `generation_settings` | Persisted generation settings per tab |
+| `user_transactions` | Billing and credit purchase history |
+
+All tables have **Row Level Security (RLS)** enabled, ensuring users can only access their own data.
+
+---
+
+## 📱 Responsive Design
+
+VirtualOutfit AI features a fully responsive design optimized for both desktop and mobile experiences:
+
+### Desktop (lg+)
+- **Left Sidebar**: Persistent navigation with Generate, Library, Billing, Settings
+- **Top Bar**: Logo, credits display, theme toggle, profile dropdown
+- **Workspace**: Full-width generation interface with split panels
+
+### Mobile (< lg)
+- **Bottom Tab Bar**: Three-tab navigation (Generate, Library, Account)
+- **Top Bar**: Compact logo and credits display
+- **Touch-Optimized**: Larger touch targets and mobile-friendly forms
+
+The layout logic is handled in `AuthenticatedLayout.tsx` using Tailwind's responsive classes (`lg:` breakpoint at 1024px).
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js** 18.0 or higher
+- **npm** or **yarn**
+- **Supabase Account** (free tier available)
+- **Google Cloud Account** with Gemini API access
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/bsp3377/Outfit-ai-figma.git
+   cd Outfit-ai-figma
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your actual keys
+   ```
+
+4. **Set up Supabase database**
+   - Go to your Supabase project's SQL Editor
+   - Run the contents of `supabase-schema.sql`
+
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open in browser**
+   ```
+   http://localhost:3000
+   ```
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+The production build will be output to the `build/` directory.
+
+---
+
+## 📝 Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server on port 3000 |
+| `npm run build` | Build for production |
+
+---
+
+## 🔐 Security
+
+- All API keys are stored in environment variables
+- Supabase Row Level Security protects user data
+- Authentication handled by Supabase Auth with secure session management
+- `.env` files are excluded from version control via `.gitignore`
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is proprietary software. All rights reserved.
+
+---
+
+## 📧 Contact
+
+**Senthil Prabhu B** - [@bsp3377](https://github.com/bsp3377)
+
+Project Link: [https://github.com/bsp3377/Outfit-ai-figma](https://github.com/bsp3377/Outfit-ai-figma)
+
+---
+
+<div align="center">
+
+Made with ❤️ by the VirtualOutfit AI Team
+
+</div>
