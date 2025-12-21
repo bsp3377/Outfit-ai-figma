@@ -1,4 +1,5 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Wand2,
   Image as ImageIcon,
@@ -35,7 +36,39 @@ export function AuthenticatedLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [userData, setUserData] = useState({ name: '', email: '' });
+  const [navVisible, setNavVisible] = useState(false);
   const creditsRemaining = 87;
+
+  // Scroll detection - show nav when scrolling, hide when idle
+  useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
+    let lastScrollY = 0;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Show nav when user scrolls
+      setNavVisible(true);
+
+      // Hide nav after 2 seconds of no scrolling
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        // Only hide if scrolled back to top or stopped scrolling
+        if (window.scrollY < 50) {
+          setNavVisible(false);
+        }
+      }, 2000);
+
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   // Fetch user data
   useEffect(() => {
@@ -87,7 +120,7 @@ export function AuthenticatedLayout({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col">
       {/* Desktop: Top Bar */}
-      <div className="hidden lg:block sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div className="hidden lg:block sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
@@ -127,30 +160,42 @@ export function AuthenticatedLayout({
                 </div>
               </button>
 
-              {profileMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl py-2">
-                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-                    <p className="text-sm">{userData.name || 'Loading...'}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">{userData.email}</p>
+              {/* Use Portal to render dropdown outside header */}
+              {profileMenuOpen && createPortal(
+                <>
+                  {/* Backdrop to close dropdown when clicking outside */}
+                  <div
+                    className="fixed inset-0 z-[9998]"
+                    onClick={() => setProfileMenuOpen(false)}
+                  />
+                  <div
+                    className="fixed w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl py-2 z-[9999]"
+                    style={{ top: '68px', right: '24px' }}
+                  >
+                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{userData.name || 'Loading...'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{userData.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        onViewChange('settings');
+                        setProfileMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span className="text-sm">Settings</span>
+                    </button>
+                    <button
+                      onClick={onLogout}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2 text-red-600"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm">Logout</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      onViewChange('settings');
-                      setProfileMenuOpen(false);
-                    }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span className="text-sm">Settings</span>
-                  </button>
-                  <button
-                    onClick={onLogout}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2 text-red-600"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="text-sm">Logout</span>
-                  </button>
-                </div>
+                </>,
+                document.body
               )}
             </div>
           </div>
@@ -218,8 +263,11 @@ export function AuthenticatedLayout({
         </main>
       </div>
 
-      {/* Mobile: Bottom Tab Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+      {/* Mobile: Bottom Tab Bar - Always visible */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         <div className="grid grid-cols-3">
           {mobileNavItems.map(item => {
             const Icon = item.icon;

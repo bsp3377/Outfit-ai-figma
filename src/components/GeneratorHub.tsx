@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Upload, Wand2, Sparkles, Image as ImageIcon, Download, Heart, Trash2, X, Loader2, Check, RotateCcw, ChevronDown, ChevronUp, GripVertical, RefreshCw, User } from 'lucide-react';
+import { Upload, Wand2, Sparkles, Image as ImageIcon, Download, Heart, Trash2, X, Loader2, Check, RotateCcw, ChevronDown, ChevronUp, GripVertical, RefreshCw, User, Zap } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner@2.0.3';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateImageWithGemini, getGeminiApiKey } from '../utils/gemini-api';
+import { generateImage, checkBackendHealth } from '../utils/backend-api';
 import { ColorPicker, ColorState } from './ColorPicker';
 import { supabase } from '../utils/supabase';
 
@@ -36,6 +37,7 @@ export function GeneratorHub() {
   };
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingHD, setIsGeneratingHD] = useState(false);
   const [generationStep, setGenerationStep] = useState<GenerationStep>(null);
   const [selectedResult, setSelectedResult] = useState<GeneratedImage | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -47,6 +49,8 @@ export function GeneratorHub() {
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
   const [autoSelectHairstyle, setAutoSelectHairstyle] = useState<boolean>(false);
   const [autoSelectPose, setAutoSelectPose] = useState<boolean>(false);
+  const [useBackend, setUseBackend] = useState<boolean>(true); // Use cost-optimized backend
+
 
   const [formData, setFormData] = useState({
     // Shared field
@@ -621,6 +625,99 @@ export function GeneratorHub() {
     } catch (err) {
       console.error('Download failed:', err);
       toast.error('Failed to download image');
+    }
+  };
+
+  // Download HD version using Ultra quality model (costs more but better quality)
+  const downloadHDImage = async () => {
+    if (!selectedResult) {
+      toast.error('No image selected');
+      return;
+    }
+
+    setIsGeneratingHD(true);
+
+    try {
+      toast.loading('Generating HD version...', { id: 'hd-gen' });
+
+      let imageBase64 = '';
+      let mimeType = 'image/jpeg';
+
+      // Try to use uploaded product images first, otherwise use the selected result
+      if (uploadedFiles.length > 0) {
+        const firstFile = uploadedFiles[0];
+        if (firstFile.url.startsWith('data:')) {
+          const matches = firstFile.url.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            mimeType = matches[1];
+            imageBase64 = matches[2];
+          }
+        }
+      }
+
+      // Fallback to using the selected result image
+      if (!imageBase64 && selectedResult.url.startsWith('data:')) {
+        const matches = selectedResult.url.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches) {
+          mimeType = matches[1];
+          imageBase64 = matches[2];
+        }
+      }
+
+      if (!imageBase64) {
+        throw new Error('Could not extract image for HD generation');
+      }
+
+      // Use the stored prompt or generate a new description
+      const promptToUse = generatedPrompt || formData.productDescription || 'High quality fashion product photo';
+
+      // Call backend with ultra quality
+      const result = await generateImage({
+        image_base64: imageBase64,
+        mime_type: mimeType,
+        product_description: promptToUse,
+        generation_type: activeTab,
+        quality: 'ultra', // HD quality
+        form_data: formData,
+        aspect_ratio: '3:4',
+      });
+
+      toast.dismiss('hd-gen');
+
+      // Create data URL and download
+      const hdImageUrl = `data:${result.mime_type};base64,${result.image_base64}`;
+
+      // Convert to blob and download
+      const byteCharacters = atob(result.image_base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: result.mime_type });
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `outfit-ai-HD-${Date.now()}.png`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+
+      toast.success('HD image downloaded!', {
+        description: 'Ultra quality image saved',
+      });
+
+    } catch (err) {
+      console.error('HD generation failed:', err);
+      toast.dismiss('hd-gen');
+      toast.error('Failed to generate HD image', {
+        description: err instanceof Error ? err.message : 'Please try again',
+      });
+    } finally {
+      setIsGeneratingHD(false);
     }
   };
 
@@ -2360,6 +2457,23 @@ export function GeneratorHub() {
                   >
                     <Download className="w-4 h-4" />
                     <span>Download</span>
+                  </button>
+                  <button
+                    onClick={downloadHDImage}
+                    disabled={isGeneratingHD}
+                    className="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    {isGeneratingHD ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4" />
+                        <span>Download HD</span>
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => {

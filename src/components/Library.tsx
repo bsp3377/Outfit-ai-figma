@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Heart, Download, Trash2, Grid3x3, List, X, Loader2 } from 'lucide-react';
+import { Search, Filter, Heart, Download, Trash2, Grid3x3, List, X, Loader2, Zap } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
@@ -408,6 +408,18 @@ export function Library() {
                 </button>
                 <button
                   onClick={() => {
+                    toast.info('HD generation requires the original product image', {
+                      description: 'Generate a new image to use HD download',
+                    });
+                  }}
+                  className="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+                  title="HD download requires original product image"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>Download HD</span>
+                </button>
+                <button
+                  onClick={() => {
                     toggleLike(selectedImage.id);
                     setSelectedImage({
                       ...selectedImage,
@@ -423,6 +435,16 @@ export function Library() {
                       }`}
                   />
                   <span>{selectedImage.liked ? 'Liked' : 'Like'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    deleteImage(selectedImage.id);
+                    setSelectedImage(null);
+                  }}
+                  className="px-4 py-3 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
