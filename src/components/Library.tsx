@@ -270,16 +270,16 @@ export function Library() {
                 alt="Generated result"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleLike(img.id);
                   }}
-                  className="p-2 bg-white/90 dark:bg-gray-900/90 rounded-lg hover:scale-110 transition-all"
+                  className="p-3 bg-white/90 dark:bg-gray-900/90 rounded-xl hover:scale-110 transition-all shadow-lg"
                 >
                   <Heart
-                    className={`w-5 h-5 ${img.liked ? 'fill-red-500 text-red-500' : 'text-gray-700 dark:text-gray-300'
+                    className={`w-6 h-6 ${img.liked ? 'fill-red-500 text-red-500' : 'text-gray-700 dark:text-gray-300'
                       }`}
                   />
                 </button>
@@ -288,18 +288,18 @@ export function Library() {
                     e.stopPropagation();
                     downloadImage(img.url);
                   }}
-                  className="p-2 bg-white/90 dark:bg-gray-900/90 rounded-lg hover:scale-110 transition-all"
+                  className="p-3 bg-white/90 dark:bg-gray-900/90 rounded-xl hover:scale-110 transition-all shadow-lg"
                 >
-                  <Download className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  <Download className="w-6 h-6 text-gray-700 dark:text-gray-300" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteImage(img.id);
                   }}
-                  className="p-2 bg-white/90 dark:bg-gray-900/90 rounded-lg hover:scale-110 transition-all"
+                  className="p-3 bg-white/90 dark:bg-gray-900/90 rounded-xl hover:scale-110 transition-all shadow-lg"
                 >
-                  <Trash2 className="w-5 h-5 text-red-600" />
+                  <Trash2 className="w-6 h-6 text-red-600" />
                 </button>
               </div>
               {img.liked && (
