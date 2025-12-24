@@ -29,7 +29,15 @@ import { AccountSettings } from "./components/AccountSettings";
 import { Toaster } from "sonner@2.0.3";
 import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
 import { supabase } from "./utils/supabase";
-import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent } from "./utils/useSiteContent";
+import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent, useTermsAndConditions } from "./utils/useSiteContent";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/ui/dialog";
 
 export default function App() {
   const [isDark, setIsDark] = useState(false);
@@ -48,6 +56,7 @@ export default function App() {
   const featureImages = useFeatureImages();
   const logoData = useLogoImage();
   const landingContent = useLandingContent();
+  const legalDocs = useTermsAndConditions();
 
   useEffect(() => {
     // Check active session - wrapped in try-catch to handle missing Supabase config
@@ -681,24 +690,118 @@ export default function App() {
                       >
                         Pricing
                       </button>
-                      <a
-                        href="#terms"
-                        className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
-                      >
-                        Terms
-                      </a>
-                      <a
-                        href="#privacy"
-                        className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
-                      >
-                        Privacy
-                      </a>
-                      <a
-                        href="#support"
-                        className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
-                      >
-                        Support
-                      </a>
+
+                      {/* Terms & Conditions Dialog */}
+                      {legalDocs.terms && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all">
+                              Terms
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-900">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold">
+                                {legalDocs.terms.title}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div
+                              className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{ __html: legalDocs.terms.content }}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {!legalDocs.terms && (
+                        <a
+                          href="#terms"
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
+                        >
+                          Terms
+                        </a>
+                      )}
+
+                      {/* Privacy Policy Dialog */}
+                      {legalDocs.privacy && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all">
+                              Privacy
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-900">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold">
+                                {legalDocs.privacy.title}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div
+                              className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{ __html: legalDocs.privacy.content }}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {!legalDocs.privacy && (
+                        <a
+                          href="#privacy"
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
+                        >
+                          Privacy
+                        </a>
+                      )}
+
+                      {/* Support Dialog */}
+                      {legalDocs.support && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all">
+                              Support
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-900">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold">
+                                {legalDocs.support.title}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div
+                              className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{ __html: legalDocs.support.content }}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {!legalDocs.support && (
+                        <a
+                          href="#support"
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
+                        >
+                          Support
+                        </a>
+                      )}
+
+                      {/* Refund Policy Dialog (if exists) */}
+                      {legalDocs.refund && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all">
+                              Refund Policy
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-900">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold">
+                                {legalDocs.refund.title}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div
+                              className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{ __html: legalDocs.refund.content }}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      )}
                     </div>
 
                     <div className="text-sm text-gray-500 dark:text-gray-500">

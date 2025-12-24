@@ -291,3 +291,79 @@ export function useLandingContent() {
         ctaNote: getText('cta_note', defaults.cta_note),
     };
 }
+
+/**
+ * Interface for terms and conditions document
+ */
+interface TermsDocument {
+    id: string;
+    title: string;
+    slug: string;
+    content: string;
+    is_active: boolean;
+    display_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+/**
+ * Hook for fetching terms and conditions, privacy policy, and other legal documents
+ */
+export function useTermsAndConditions() {
+    const [documents, setDocuments] = useState<TermsDocument[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchTerms() {
+            if (!isSupabaseConfigured) {
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                const { data, error: fetchError } = await supabase
+                    .from('terms_and_conditions')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('display_order', { ascending: true });
+
+                if (fetchError) {
+                    console.error('Error fetching terms and conditions:', fetchError);
+                    setError(fetchError.message);
+                } else if (data) {
+                    setDocuments(data as TermsDocument[]);
+                }
+            } catch (err) {
+                console.error('Failed to fetch terms and conditions:', err);
+                setError('Failed to load legal documents');
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchTerms();
+    }, []);
+
+    // Helper to get a document by slug
+    const getDocument = (slug: string): TermsDocument | undefined => {
+        return documents.find(doc => doc.slug === slug);
+    };
+
+    // Get specific documents
+    const terms = getDocument('terms') || getDocument('terms-of-service');
+    const privacy = getDocument('privacy') || getDocument('privacy-policy');
+    const support = getDocument('support') || getDocument('contact');
+    const refund = getDocument('refund') || getDocument('refund-policy');
+
+    return {
+        documents,
+        isLoading,
+        error,
+        getDocument,
+        terms,
+        privacy,
+        support,
+        refund,
+    };
+}
