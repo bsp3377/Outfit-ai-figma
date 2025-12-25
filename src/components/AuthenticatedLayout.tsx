@@ -35,7 +35,7 @@ export function AuthenticatedLayout({
   onToggleDark,
 }: AuthenticatedLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
   const [userData, setUserData] = useState({ name: '', email: '' });
   const [navVisible, setNavVisible] = useState(false);
   const creditsRemaining = 87;
@@ -162,17 +162,7 @@ export function AuthenticatedLayout({
               onAction={(action) => {
                 if (action === 'logout') {
                   onLogout();
-                } else if (action === 'settings') {
-                  onViewChange('settings');
-                } else if (action === 'account') {
-                  onViewChange('account');
-                } else if (action === 'billing') {
-                  onViewChange('billing');
-                } else if (action === 'upgrade') {
-                  // Open upgrade/pricing modal or navigate
-                  window.open('https://outfitai.studio/pricing', '_blank');
                 }
-                setProfileMenuOpen(false);
               }}
             />
           </div>
