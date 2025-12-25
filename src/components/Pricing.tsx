@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Check, X, ChevronDown, ChevronUp, Zap, Images, BookmarkCheck, Gauge } from 'lucide-react';
+import { Check, X, ChevronDown, ChevronUp, Zap, Images, BookmarkCheck, Gauge, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { initiateRazorpayPayment, isRazorpayConfigured } from '../utils/razorpay';
 
 interface PricingCardProps {
   name: string;
@@ -10,21 +12,22 @@ interface PricingCardProps {
   highlighted?: boolean;
   isFree?: boolean;
   isContactPlan?: boolean;
+  onSubscribe?: () => void;
+  isLoading?: boolean;
 }
 
-function PricingCard({ name, price, generations, description, features, highlighted, isFree, isContactPlan }: PricingCardProps) {
+function PricingCard({ name, price, generations, description, features, highlighted, isFree, isContactPlan, onSubscribe, isLoading }: PricingCardProps) {
   return (
-    <div className={`relative bg-white dark:bg-gray-900 border-2 ${
-      highlighted 
-        ? 'border-purple-600 shadow-xl scale-105' 
-        : 'border-gray-200 dark:border-gray-800'
-    } rounded-2xl p-8 flex flex-col`}>
+    <div className={`relative bg-white dark:bg-gray-900 border-2 ${highlighted
+      ? 'border-purple-600 shadow-xl scale-105'
+      : 'border-gray-200 dark:border-gray-800'
+      } rounded-2xl p-8 flex flex-col`}>
       {highlighted && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 rounded-full text-sm">
           Most Popular
         </div>
       )}
-      
+
       <div className="mb-6">
         <h3 className="mb-2">{name}</h3>
         <div className="flex items-baseline gap-2 mb-2">
@@ -50,14 +53,17 @@ function PricingCard({ name, price, generations, description, features, highligh
         ))}
       </ul>
 
-      <button className={`w-full py-3 px-6 rounded-lg transition-all ${
-        highlighted
-          ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl'
+      <button
+        onClick={!isFree && !isContactPlan ? onSubscribe : undefined}
+        disabled={isLoading}
+        className={`w-full py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 ${highlighted
+          ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl disabled:opacity-70'
           : isFree
-          ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-          : 'border-2 border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-      }`}>
-        {isFree ? 'Start Free' : isContactPlan ? 'Contact Us' : 'Subscribe with Razorpay'}
+            ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+            : 'border-2 border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-70'
+          }`}>
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {isFree ? 'Start Free' : isContactPlan ? 'Contact Us' : isLoading ? 'Processing...' : 'Subscribe with Razorpay'}
       </button>
     </div>
   );
@@ -149,6 +155,7 @@ function FAQItem({ question, answer }: FAQItemProps) {
 }
 
 export function Pricing() {
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
   const plans = [
     {
       name: 'Free Trial',
@@ -221,6 +228,36 @@ export function Pricing() {
     },
   ];
 
+  // Handle Razorpay payment for Pro plan
+  const handleProSubscription = () => {
+    if (!isRazorpayConfigured) {
+      toast.error('Payment gateway not configured. Please contact support.');
+      return;
+    }
+
+    setIsPaymentLoading(true);
+
+    initiateRazorpayPayment({
+      planId: 'pro',
+      onSuccess: (response) => {
+        setIsPaymentLoading(false);
+        toast.success('Payment successful! Activating your Pro subscription...', {
+          description: `Payment ID: ${response.razorpay_payment_id}`,
+        });
+        // TODO: Call backend to verify payment and activate subscription
+        console.log('Payment successful:', response);
+      },
+      onFailure: (error) => {
+        setIsPaymentLoading(false);
+        toast.error('Payment failed', {
+          description: error,
+        });
+      },
+      onDismiss: () => {
+        setIsPaymentLoading(false);
+      },
+    });
+  };
   return (
     <div>
       {/* Pricing Hero */}
@@ -240,7 +277,12 @@ export function Pricing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {plans.map((plan, index) => (
-              <PricingCard key={index} {...plan} />
+              <PricingCard
+                key={index}
+                {...plan}
+                onSubscribe={plan.highlighted ? handleProSubscription : undefined}
+                isLoading={plan.highlighted ? isPaymentLoading : false}
+              />
             ))}
           </div>
         </div>
