@@ -332,6 +332,8 @@ export function useTermsAndConditions() {
                     console.error('Error fetching terms and conditions:', fetchError);
                     setError(fetchError.message);
                 } else if (data) {
+                    console.log('Fetched documents from Supabase:', data);
+                    console.log('Document slugs:', data.map((d: any) => d.slug));
                     setDocuments(data as TermsDocument[]);
                 }
             } catch (err) {
@@ -352,9 +354,9 @@ export function useTermsAndConditions() {
 
     // Get specific documents
     const terms = getDocument('terms') || getDocument('terms-of-service');
-    const privacy = getDocument('privacy') || getDocument('privacy-policy');
+    const privacy = getDocument('privacy') || getDocument('privacy-policy') || getDocument('Privacy Policy');
     const support = getDocument('support') || getDocument('contact');
-    const refund = getDocument('refund') || getDocument('refund-policy');
+    const refund = getDocument('refund') || getDocument('refund-policy') || getDocument('Refund Policy');
 
     return {
         documents,

@@ -720,7 +720,7 @@ export default function App() {
                           onClick={() => setCurrentPage("privacy")}
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                         >
-                          Privacy
+                          Privacy Policy
                         </button>
 
                         {/* Support Link */}
@@ -731,15 +731,13 @@ export default function App() {
                           Support
                         </button>
 
-                        {/* Refund Policy Link (if exists) */}
-                        {legalDocs.refund && (
-                          <button
-                            onClick={() => setCurrentPage("refund")}
-                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
-                          >
-                            Refund Policy
-                          </button>
-                        )}
+                        {/* Refund Policy Link */}
+                        <button
+                          onClick={() => setCurrentPage("refund")}
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
+                        >
+                          Refund Policy
+                        </button>
                       </div>
 
                       <div className="text-sm text-gray-500 dark:text-gray-500">
