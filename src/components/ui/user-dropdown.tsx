@@ -37,10 +37,12 @@ export const UserDropdown = ({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer w-8 h-8 lg:w-10 lg:h-10 border border-white dark:border-gray-700 transition-transform hover:scale-105">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>{user.initials}</AvatarFallback>
-                </Avatar>
+                <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+                    <Avatar className="cursor-pointer w-8 h-8 lg:w-10 lg:h-10 border border-white dark:border-gray-700 transition-transform hover:scale-105">
+                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarFallback>{user.initials}</AvatarFallback>
+                    </Avatar>
+                </button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent className="w-[240px] rounded-xl bg-white dark:bg-gray-950 p-2" align="end">
