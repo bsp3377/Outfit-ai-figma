@@ -193,12 +193,12 @@ export default function App() {
                         <Moon className="w-5 h-5" />
                       )}
                     </button>
-                    <a
-                      href="#start"
+                    <button
+                      onClick={() => setCurrentPage("auth")}
                       className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all"
                     >
                       Start Free
-                    </a>
+                    </button>
                   </div>
 
                   {/* Mobile Menu Button */}
@@ -261,12 +261,15 @@ export default function App() {
                       >
                         Sign in
                       </button>
-                      <a
-                        href="#start"
+                      <button
+                        onClick={() => {
+                          setCurrentPage("auth");
+                          setMobileMenuOpen(false);
+                        }}
                         className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-center"
                       >
                         Start Free
-                      </a>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -292,12 +295,12 @@ export default function App() {
                           {landingContent.heroSubtitle}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                          <a
-                            href="#start"
+                          <button
+                            onClick={() => setCurrentPage("auth")}
                             className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all text-lg"
                           >
                             {landingContent.heroCtaPrimary}
-                          </a>
+                          </button>
                           <a
                             href="#demo"
                             className="px-8 py-4 border-2 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600 rounded-lg hover:scale-105 hover:shadow-md transition-all text-lg"
@@ -516,12 +519,12 @@ export default function App() {
                     </div>
 
                     <div className="text-center mt-12">
-                      <a
-                        href="#start"
+                      <button
+                        onClick={() => setCurrentPage("auth")}
                         className="inline-block px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all text-lg"
                       >
                         Try It Free Now
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </section>
