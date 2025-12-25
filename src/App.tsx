@@ -315,18 +315,14 @@ export default function App() {
 
                       {/* Hero Demo */}
                       <div className="w-full aspect-[4/3] lg:aspect-auto lg:h-[500px]">
-                        {heroImages.isLoading ? (
-                          <div className="w-full h-full bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse flex items-center justify-center">
-                            <div className="text-gray-400">Loading...</div>
+                        {heroImages.isLoading || !heroImages.hero.before ? (
+                          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-lg animate-pulse flex items-center justify-center">
+                            <div className="text-gray-400 dark:text-gray-500">Loading...</div>
                           </div>
                         ) : (
                           <BeforeAfterSlider
-                            beforeImage={
-                              heroImages.hero.before || image_a3b4af98c90003c1c241e34732ad80a5631c9b37
-                            }
-                            afterImage={
-                              heroImages.hero.after || image_1ac3da18db9cf9a461af1c75316b1d71edf52cf1
-                            }
+                            beforeImage={heroImages.hero.before}
+                            afterImage={heroImages.hero.after}
                             beforeAlt="Product on plain background"
                             afterAlt="Product on fashion model"
                           />
@@ -411,12 +407,18 @@ export default function App() {
                       {/* Apparel */}
                       <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                         <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
-                          <BeforeAfterSlider
-                            beforeImage={beforeAfterImages.apparel.before}
-                            afterImage={beforeAfterImages.apparel.after}
-                            beforeAlt="Clothing product plain"
-                            afterAlt="Model wearing clothing"
-                          />
+                          {beforeAfterImages.isLoading || !beforeAfterImages.apparel.before ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <BeforeAfterSlider
+                              beforeImage={beforeAfterImages.apparel.before}
+                              afterImage={beforeAfterImages.apparel.after}
+                              beforeAlt="Clothing product plain"
+                              afterAlt="Model wearing clothing"
+                            />
+                          )}
                         </div>
                         <h3 className="text-center mb-1">
                           {landingContent.apparelTitle}
@@ -429,12 +431,18 @@ export default function App() {
                       {/* Jewelry */}
                       <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                         <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
-                          <BeforeAfterSlider
-                            beforeImage={beforeAfterImages.jewelry.before}
-                            afterImage={beforeAfterImages.jewelry.after}
-                            beforeAlt="Jewelry product"
-                            afterAlt="Model wearing jewelry"
-                          />
+                          {beforeAfterImages.isLoading || !beforeAfterImages.jewelry.before ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <BeforeAfterSlider
+                              beforeImage={beforeAfterImages.jewelry.before}
+                              afterImage={beforeAfterImages.jewelry.after}
+                              beforeAlt="Jewelry product"
+                              afterAlt="Model wearing jewelry"
+                            />
+                          )}
                         </div>
                         <h3 className="text-center mb-1">
                           {landingContent.jewelryTitle}
@@ -447,12 +455,18 @@ export default function App() {
                       {/* Footwear */}
                       <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                         <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
-                          <BeforeAfterSlider
-                            beforeImage={beforeAfterImages.shoes.before}
-                            afterImage={beforeAfterImages.shoes.after}
-                            beforeAlt="Shoes product"
-                            afterAlt="Model wearing shoes"
-                          />
+                          {beforeAfterImages.isLoading || !beforeAfterImages.shoes.before ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <BeforeAfterSlider
+                              beforeImage={beforeAfterImages.shoes.before}
+                              afterImage={beforeAfterImages.shoes.after}
+                              beforeAlt="Shoes product"
+                              afterAlt="Model wearing shoes"
+                            />
+                          )}
                         </div>
                         <h3 className="text-center mb-1">
                           Footwear
@@ -465,12 +479,18 @@ export default function App() {
                       {/* Accessories */}
                       <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                         <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
-                          <BeforeAfterSlider
-                            beforeImage={beforeAfterImages.handbag.before}
-                            afterImage={beforeAfterImages.handbag.after}
-                            beforeAlt="Handbag product"
-                            afterAlt="Styled handbag"
-                          />
+                          {beforeAfterImages.isLoading || !beforeAfterImages.handbag.before ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <BeforeAfterSlider
+                              beforeImage={beforeAfterImages.handbag.before}
+                              afterImage={beforeAfterImages.handbag.after}
+                              beforeAlt="Handbag product"
+                              afterAlt="Styled handbag"
+                            />
+                          )}
                         </div>
                         <h3 className="text-center mb-1">
                           Accessories
@@ -483,12 +503,18 @@ export default function App() {
                       {/* Watches */}
                       <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                         <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
-                          <BeforeAfterSlider
-                            beforeImage={beforeAfterImages.watch.before}
-                            afterImage={beforeAfterImages.watch.after}
-                            beforeAlt="Watch product"
-                            afterAlt="Watch lifestyle"
-                          />
+                          {beforeAfterImages.isLoading || !beforeAfterImages.watch.before ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <BeforeAfterSlider
+                              beforeImage={beforeAfterImages.watch.before}
+                              afterImage={beforeAfterImages.watch.after}
+                              beforeAlt="Watch product"
+                              afterAlt="Watch lifestyle"
+                            />
+                          )}
                         </div>
                         <h3 className="text-center mb-1">
                           Watches
@@ -498,19 +524,21 @@ export default function App() {
                         </p>
                       </div>
 
-                      {/* Original Hero Example */}
+                      {/* Fashion */}
                       <div className="bg-white dark:bg-gray-950 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                         <div className="aspect-[3/4] mb-4 rounded-lg overflow-hidden">
-                          <BeforeAfterSlider
-                            beforeImage={
-                              beforeAfterImages.fashion.before || image_a3b4af98c90003c1c241e34732ad80a5631c9b37
-                            }
-                            afterImage={
-                              beforeAfterImages.fashion.after || image_0ef793a5965fe79a80bdb0d1fd88d97304605580
-                            }
-                            beforeAlt="Product on plain background"
-                            afterAlt="Product on fashion model"
-                          />
+                          {beforeAfterImages.isLoading || !beforeAfterImages.fashion.before ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <BeforeAfterSlider
+                              beforeImage={beforeAfterImages.fashion.before}
+                              afterImage={beforeAfterImages.fashion.after}
+                              beforeAlt="Product on plain background"
+                              afterAlt="Product on fashion model"
+                            />
+                          )}
                         </div>
                         <h3 className="text-center mb-1">
                           Fashion
@@ -557,11 +585,17 @@ export default function App() {
                           with studio lighting
                         </p>
                         <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                          <img
-                            src={featureImages.fashionModel}
-                            alt="Fashion model example"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          {featureImages.isLoading || !featureImages.fashionModel ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <img
+                              src={featureImages.fashionModel}
+                              alt="Fashion model example"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -576,11 +610,17 @@ export default function App() {
                           premium aesthetics
                         </p>
                         <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                          <img
-                            src={featureImages.jewelryCloseup}
-                            alt="Jewelry close-up example"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          {featureImages.isLoading || !featureImages.jewelryCloseup ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <img
+                              src={featureImages.jewelryCloseup}
+                              alt="Jewelry close-up example"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -595,11 +635,17 @@ export default function App() {
                           media impact
                         </p>
                         <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                          <img
-                            src={featureImages.flatlayPro}
-                            alt="Flatlay example"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          {featureImages.isLoading || !featureImages.flatlayPro ? (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400 dark:text-gray-500 text-sm">Loading...</div>
+                            </div>
+                          ) : (
+                            <img
+                              src={featureImages.flatlayPro}
+                              alt="Flatlay example"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
