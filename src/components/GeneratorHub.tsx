@@ -8,6 +8,7 @@ import { generateImage, checkBackendHealth } from '../utils/backend-api';
 import { ColorPicker, ColorState } from './ColorPicker';
 import { supabase } from '../utils/supabase';
 import { GenerationProgress } from './ui/GenerationProgress';
+import BlockLoader from './ui/block-loader';
 
 type TabType = 'fashion' | 'jewellery' | 'flatlay';
 type GenerationStep = 'uploading' | 'prompt' | 'generating' | 'saving' | null;
@@ -2363,8 +2364,23 @@ export function GeneratorHub() {
       {
         isGenerating && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <GenerationProgress duration={15000}>
-              <div className="space-y-4 w-full max-w-xs mx-auto py-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 max-w-md w-full flex flex-col items-center shadow-2xl border border-gray-200 dark:border-gray-800">
+              <div className="text-center mb-8 w-full flex flex-col items-center">
+                <BlockLoader
+                  blockColor="bg-purple-600 dark:bg-purple-500"
+                  borderColor="border-purple-200 dark:border-purple-800"
+                  size={24}
+                  gap={4}
+                  speed={0.8}
+                  className="mb-6"
+                />
+                <h3 className="mb-2 text-lg font-semibold">Creating Masterpiece</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Weaving pixels... This may take 10-15 seconds
+                </p>
+              </div>
+
+              <div className="space-y-4 w-full">
                 {generationSteps.map((step, index) => {
                   const isComplete = index < currentStepIndex;
                   const isCurrent = index === currentStepIndex;
@@ -2399,7 +2415,7 @@ export function GeneratorHub() {
                   );
                 })}
               </div>
-            </GenerationProgress>
+            </div>
           </div>
         )
       }
