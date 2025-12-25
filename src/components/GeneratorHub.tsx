@@ -7,6 +7,7 @@ import { generateImageWithGemini, getGeminiApiKey } from '../utils/gemini-api';
 import { generateImage, checkBackendHealth } from '../utils/backend-api';
 import { ColorPicker, ColorState } from './ColorPicker';
 import { supabase } from '../utils/supabase';
+import { GenerationProgress } from './ui/GenerationProgress';
 
 type TabType = 'fashion' | 'jewellery' | 'flatlay';
 type GenerationStep = 'uploading' | 'prompt' | 'generating' | 'saving' | null;
@@ -2361,19 +2362,9 @@ export function GeneratorHub() {
       {/* Generation Overlay */}
       {
         isGenerating && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 max-w-md w-full">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Loader2 className="w-8 h-8 text-purple-600 dark:text-purple-400 animate-spin" />
-                </div>
-                <h3 className="mb-2">Generating your images</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  This will take about 10-15 seconds
-                </p>
-              </div>
-
-              <div className="space-y-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <GenerationProgress duration={15000}>
+              <div className="space-y-4 w-full max-w-xs mx-auto py-4">
                 {generationSteps.map((step, index) => {
                   const isComplete = index < currentStepIndex;
                   const isCurrent = index === currentStepIndex;
@@ -2381,11 +2372,11 @@ export function GeneratorHub() {
                   return (
                     <div
                       key={step.id}
-                      className={`flex items-center gap-3 ${isComplete || isCurrent ? 'opacity-100' : 'opacity-40'
+                      className={`flex items-center gap-3 transition-opacity duration-300 ${isComplete || isCurrent ? 'opacity-100' : 'opacity-40'
                         }`}
                     >
                       <div
-                        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${isComplete
+                        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors duration-300 ${isComplete
                           ? 'bg-green-500'
                           : isCurrent
                             ? 'bg-purple-600'
@@ -2393,22 +2384,26 @@ export function GeneratorHub() {
                           }`}
                       >
                         {isComplete ? (
-                          <Check className="w-4 h-4 text-white" />
+                          <Check className="w-3.5 h-3.5 text-white" />
                         ) : isCurrent ? (
-                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
                         ) : (
-                          <span className="text-xs text-white">{index + 1}</span>
+                          <span className="text-xs text-white pb-[1px]">{index + 1}</span>
                         )}
                       </div>
-                      <span className="text-sm">{step.label}</span>
+                      <span className={`text-sm font-medium transition-colors duration-300 ${isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'
+                        }`}>
+                        {step.label}
+                      </span>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </GenerationProgress>
           </div>
         )
       }
+
 
       {/* Image Detail Bottom Sheet (Mobile) */}
       {
