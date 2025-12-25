@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { BeforeAfterSlider } from "./components/BeforeAfterSlider";
 import { ImageWithFallback } from "./components/figma/ImageWithFallback";
-import { Toaster } from "sonner@2.0.3";
+import { Toaster } from "sonner";
 import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
 import { supabase } from "./utils/supabase";
 import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent, useTermsAndConditions } from "./utils/useSiteContent";
@@ -35,9 +35,7 @@ const Library = lazy(() => import("./components/Library").then(module => ({ defa
 const BillingSettings = lazy(() => import("./components/BillingSettings").then(module => ({ default: module.BillingSettings })));
 const AccountSettings = lazy(() => import("./components/AccountSettings").then(module => ({ default: module.AccountSettings })));
 const LegalPage = lazy(() => import("./components/LegalPage").then(module => ({ default: module.LegalPage })));
-import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
-import { supabase } from "./utils/supabase";
-import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent, useTermsAndConditions } from "./utils/useSiteContent";
+
 import {
   Dialog,
   DialogContent,
