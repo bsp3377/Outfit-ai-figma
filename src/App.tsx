@@ -24,6 +24,7 @@ import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png"
 import { supabase } from "./utils/supabase";
 import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent, useTermsAndConditions } from "./utils/useSiteContent";
 import { PageLoader } from "./components/ui/PageLoader";
+import { MouseTrailBackground } from "./components/ui/mouse-trail-background";
 
 // Lazy load heavy components
 const Pricing = lazy(() => import("./components/Pricing").then(module => ({ default: module.Pricing })));
@@ -281,7 +282,9 @@ export default function App() {
               <>
                 {/* Hero Section */}
                 <section className="relative overflow-hidden">
-                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+                  {/* Interactive Mouse Trail Background */}
+                  <MouseTrailBackground isDark={isDark} dotCount={40} />
+                  <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                       {/* Hero Content */}
                       <div className="text-center lg:text-left">
