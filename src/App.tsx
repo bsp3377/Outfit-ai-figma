@@ -24,7 +24,7 @@ import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png"
 import { supabase } from "./utils/supabase";
 import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent, useTermsAndConditions } from "./utils/useSiteContent";
 import { PageLoader } from "./components/ui/PageLoader";
-import { MouseTrailBackground } from "./components/ui/mouse-trail-background";
+// MouseTrailBackground removed - cursor interaction disabled
 import { AnimatedShinyText } from "./components/ui/animated-shiny-text";
 
 // Lazy load heavy components
@@ -283,17 +283,15 @@ export default function App() {
               <>
                 {/* Hero Section */}
                 <section className="relative overflow-hidden">
-                  {/* Interactive Mouse Trail Background */}
-                  <MouseTrailBackground isDark={isDark} dotCount={40} />
-                  <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                       {/* Hero Content */}
                       <div className="text-center lg:text-left">
                         <h1 className="text-4xl sm:text-5xl lg:text-6xl mb-6">
                           {landingContent.heroTitle}{" "}
-                          <AnimatedShinyText className="text-4xl sm:text-5xl lg:text-6xl font-inherit">
-                            {landingContent.heroTitleHighlight}
-                          </AnimatedShinyText>
+                          <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            {landingContent.heroTitleHighlight || 'instantly'}
+                          </span>
                         </h1>
                         <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto lg:mx-0">
                           {landingContent.heroSubtitle}
