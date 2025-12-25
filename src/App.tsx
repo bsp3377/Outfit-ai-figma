@@ -4,6 +4,7 @@ import image_169288cf84b5497e363924fb9978b10a4b6352dd from "figma:asset/169288cf
 import image_b9cb16a4d4cac524e72286f4fd9a7a08e0a64d1b from "figma:asset/b9cb16a4d4cac524e72286f4fd9a7a08e0a64d1b.png";
 import image_1ac3da18db9cf9a461af1c75316b1d71edf52cf1 from "figma:asset/1ac3da18db9cf9a461af1c75316b1d71edf52cf1.png";
 import { Suspense, lazy, useState, useEffect } from "react";
+import { Routes, Route, useNavigate, useLocation, Link } from "react-router-dom";
 // ... icons imports remain ...
 import {
   Moon,
@@ -50,9 +51,8 @@ import {
 export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<
-    "home" | "pricing" | "auth" | "howItWorks" | "terms" | "privacy" | "support" | "refund"
-  >("home");
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authenticatedView, setAuthenticatedView] = useState<
     "generate" | "library" | "billing" | "settings" | "account"
@@ -87,7 +87,7 @@ export default function App() {
       } = supabase.auth.onAuthStateChange((_event, session) => {
         setIsAuthenticated(!!session);
         if (!session) {
-          setCurrentPage("home");
+          navigate("/");
         }
       });
 
@@ -108,7 +108,7 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
-    setCurrentPage("home");
+    navigate("/");
   };
 
   return (
@@ -154,7 +154,7 @@ export default function App() {
                 <div className="flex items-center justify-between h-16">
                   {/* Logo */}
                   <button
-                    onClick={() => setCurrentPage("home")}
+                    onClick={() => navigate("/")}
                     className="flex items-center gap-2 hover:opacity-80 transition-all"
                   >
                     <img
@@ -167,19 +167,19 @@ export default function App() {
                   {/* Desktop Navigation */}
                   <div className="hidden md:flex items-center gap-6">
                     <button
-                      onClick={() => setCurrentPage("howItWorks")}
+                      onClick={() => navigate("/how-it-works")}
                       className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                     >
                       How It Works
                     </button>
                     <button
-                      onClick={() => setCurrentPage("pricing")}
+                      onClick={() => navigate("/pricing")}
                       className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                     >
                       Pricing
                     </button>
                     <button
-                      onClick={() => setCurrentPage("auth")}
+                      onClick={() => navigate("/auth")}
                       className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                     >
                       Sign in
@@ -196,7 +196,7 @@ export default function App() {
                       )}
                     </button>
                     <button
-                      onClick={() => setCurrentPage("auth")}
+                      onClick={() => navigate("/auth")}
                       className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all"
                     >
                       Start Free
@@ -238,7 +238,7 @@ export default function App() {
                     <div className="flex flex-col gap-3">
                       <button
                         onClick={() => {
-                          setCurrentPage("howItWorks");
+                          navigate("/how-it-works");
                           setMobileMenuOpen(false);
                         }}
                         className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
@@ -247,7 +247,7 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => {
-                          setCurrentPage("pricing");
+                          navigate("/pricing");
                           setMobileMenuOpen(false);
                         }}
                         className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
@@ -256,7 +256,7 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => {
-                          setCurrentPage("auth");
+                          navigate("/auth");
                           setMobileMenuOpen(false);
                         }}
                         className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
@@ -265,7 +265,7 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => {
-                          setCurrentPage("auth");
+                          navigate("/auth");
                           setMobileMenuOpen(false);
                         }}
                         className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-center"
@@ -279,7 +279,7 @@ export default function App() {
             </nav>
 
             {/* Conditional Page Rendering */}
-            {currentPage === "home" ? (
+            {location.pathname === "/" ? (
               <>
                 {/* Hero Section */}
                 <section className="relative overflow-hidden">
@@ -298,7 +298,7 @@ export default function App() {
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                           <button
-                            onClick={() => setCurrentPage("auth")}
+                            onClick={() => navigate("/auth")}
                             className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all text-lg"
                           >
                             {landingContent.heroCtaPrimary}
@@ -550,7 +550,7 @@ export default function App() {
 
                     <div className="text-center mt-12">
                       <button
-                        onClick={() => setCurrentPage("auth")}
+                        onClick={() => navigate("/auth")}
                         className="inline-block px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg hover:scale-105 hover:shadow-lg transition-all text-lg"
                       >
                         Try It Free Now
@@ -732,7 +732,7 @@ export default function App() {
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                       <button
-                        onClick={() => setCurrentPage("home")}
+                        onClick={() => navigate("/")}
                         className="flex items-center gap-2 hover:opacity-80 transition-all"
                       >
                         <img
@@ -745,7 +745,7 @@ export default function App() {
                       <div className="flex flex-wrap justify-center gap-6 text-sm">
                         <button
                           onClick={() =>
-                            setCurrentPage("pricing")
+                            navigate("/pricing")
                           }
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                         >
@@ -754,7 +754,7 @@ export default function App() {
 
                         {/* Terms & Conditions Link */}
                         <button
-                          onClick={() => setCurrentPage("terms")}
+                          onClick={() => navigate("/terms")}
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                         >
                           Terms and Conditions
@@ -762,7 +762,7 @@ export default function App() {
 
                         {/* Privacy Policy Link */}
                         <button
-                          onClick={() => setCurrentPage("privacy")}
+                          onClick={() => navigate("/privacy-policy")}
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                         >
                           Privacy Policy
@@ -770,7 +770,7 @@ export default function App() {
 
                         {/* Support Link */}
                         <button
-                          onClick={() => setCurrentPage("support")}
+                          onClick={() => navigate("/support")}
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                         >
                           Support
@@ -778,7 +778,7 @@ export default function App() {
 
                         {/* Refund Policy Link */}
                         <button
-                          onClick={() => setCurrentPage("refund")}
+                          onClick={() => navigate("/refund-policy")}
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 transition-all"
                         >
                           Refund Policy
@@ -792,14 +792,24 @@ export default function App() {
                   </div>
                 </footer>
               </>
-            ) : currentPage === "pricing" ? (
+            ) : location.pathname === "/pricing" ? (
               <Pricing />
-            ) : currentPage === "howItWorks" ? (
-              <HowItWorks onNavigate={setCurrentPage} />
-            ) : ["terms", "privacy", "support", "refund"].includes(currentPage) ? (
+            ) : location.pathname === "/how-it-works" ? (
+              <HowItWorks onNavigate={(page: string) => {
+                if (page === 'home') navigate('/');
+                else if (page === 'pricing') navigate('/pricing');
+                else if (page === 'auth') navigate('/auth');
+                else if (page === 'howItWorks') navigate('/how-it-works');
+                else navigate(`/${page}`);
+              }} />
+            ) : ["/terms", "/privacy-policy", "/support", "/refund-policy"].includes(location.pathname) ? (
               <LegalPage
-                type={currentPage as any}
-                onBack={() => setCurrentPage("home")}
+                type={
+                  location.pathname === '/terms' ? 'terms' :
+                    location.pathname === '/privacy-policy' ? 'privacy' :
+                      location.pathname === '/support' ? 'support' : 'refund'
+                }
+                onBack={() => navigate("/")}
               />
             ) : (
               <Auth
