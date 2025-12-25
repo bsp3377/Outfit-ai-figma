@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import logoImage from 'figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png';
 import { supabase } from '../utils/supabase';
+import { UserDropdown } from './ui/user-dropdown';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
@@ -149,55 +150,31 @@ export function AuthenticatedLayout({
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {/* Profile Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-              >
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-              </button>
-
-              {/* Use Portal to render dropdown outside header */}
-              {profileMenuOpen && createPortal(
-                <>
-                  {/* Backdrop to close dropdown when clicking outside */}
-                  <div
-                    className="fixed inset-0 z-[9998]"
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div
-                    className="fixed w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl py-2 z-[9999]"
-                    style={{ top: '68px', right: '24px' }}
-                  >
-                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-                      <p className="text-sm text-gray-900 dark:text-gray-100">{userData.name || 'Loading...'}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{userData.email}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        onViewChange('settings');
-                        setProfileMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span className="text-sm">Settings</span>
-                    </button>
-                    <button
-                      onClick={onLogout}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2 text-red-600"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="text-sm">Logout</span>
-                    </button>
-                  </div>
-                </>,
-                document.body
-              )}
-            </div>
+            {/* Profile Menu - UserDropdown Integration */}
+            <UserDropdown
+              user={{
+                name: userData.name,
+                username: userData.email, // Using email as username for now
+                avatar: `https://api.dicebear.com/9.x/initials/svg?seed=${userData.name}`, // Fallback avatar
+                initials: userData.name.substring(0, 2).toUpperCase(),
+                status: "online"
+              }}
+              onAction={(action) => {
+                if (action === 'logout') {
+                  onLogout();
+                } else if (action === 'settings') {
+                  onViewChange('settings');
+                } else if (action === 'account') {
+                  onViewChange('account');
+                } else if (action === 'billing') {
+                  onViewChange('billing');
+                } else if (action === 'upgrade') {
+                  // Open upgrade/pricing modal or navigate
+                  window.open('https://outfitai.studio/pricing', '_blank');
+                }
+                setProfileMenuOpen(false);
+              }}
+            />
           </div>
         </div>
       </div>
