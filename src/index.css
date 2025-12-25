@@ -3279,6 +3279,21 @@ html {
   }
 }
 
+/* Shimmer animation for animated shiny text */
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
 /* ============================================
    CAPACITOR MOBILE APP STYLES
    ============================================
