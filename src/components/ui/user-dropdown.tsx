@@ -100,7 +100,7 @@ export const UserDropdown = ({
             <span className="flex items-center gap-1.5 font-medium">
                 <Icon
                     icon={item.icon}
-                    className={`size-5 ${item.iconClass || "text-gray-500 dark:text-gray-400"}`}
+                    className={`w-5 h-5 ${item.iconClass || "text-gray-500 dark:text-gray-400"}`}
                 />
                 {item.label}
             </span>
@@ -112,11 +112,11 @@ export const UserDropdown = ({
             {item.rightIcon && (
                 <Icon
                     icon={item.rightIcon}
-                    className="size-4 text-gray-500 dark:text-gray-400"
+                    className="w-4 h-4 text-gray-500 dark:text-gray-400"
                 />
             )}
             {item.showAvatar && (
-                <Avatar className="cursor-pointer size-6 shadow border border-white dark:border-gray-700">
+                <Avatar className="cursor-pointer w-6 h-6 shadow border border-white dark:border-gray-700">
                     <AvatarImage src={user.avatar} alt={user.name} />
                     <AvatarFallback>{user.initials}</AvatarFallback>
                 </Avatar>
@@ -136,7 +136,7 @@ export const UserDropdown = ({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer size-8 lg:size-10 border border-white dark:border-gray-700 transition-transform hover:scale-105">
+                <Avatar className="cursor-pointer w-8 h-8 lg:w-10 lg:h-10 border border-white dark:border-gray-700 transition-transform hover:scale-105">
                     <AvatarImage src={user.avatar} alt={user.name} />
                     <AvatarFallback>{user.initials}</AvatarFallback>
                 </Avatar>
@@ -146,7 +146,7 @@ export const UserDropdown = ({
                 <section className="bg-white dark:bg-gray-100/10 backdrop-blur-lg rounded-2xl p-1 shadow border border-gray-200 dark:border-gray-700/20">
                     <div className="flex items-center p-2">
                         <div className="flex-1 flex items-center gap-2">
-                            <Avatar className="cursor-pointer size-10 border border-white dark:border-gray-700">
+                            <Avatar className="cursor-pointer w-10 h-10 border border-white dark:border-gray-700">
                                 <AvatarImage src={user.avatar} alt={user.name} />
                                 <AvatarFallback>{user.initials}</AvatarFallback>
                             </Avatar>
@@ -164,7 +164,7 @@ export const UserDropdown = ({
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger className="cursor-pointer p-2 rounded-lg">
                                 <span className="flex items-center gap-1.5 font-medium text-gray-500 dark:text-gray-400">
-                                    <Icon icon="solar:smile-circle-line-duotone" className="size-5 text-gray-500 dark:text-gray-400" />
+                                    <Icon icon="solar:smile-circle-line-duotone" className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                                     Update status
                                 </span>
                             </DropdownMenuSubTrigger>
@@ -173,7 +173,7 @@ export const UserDropdown = ({
                                     <DropdownMenuRadioGroup value={selectedStatus} onValueChange={onStatusChange}>
                                         {MENU_ITEMS.status.map((status, index) => (
                                             <DropdownMenuRadioItem className="gap-2 rounded-lg cursor-pointer" key={index} value={status.value}>
-                                                <Icon icon={status.icon} className="size-5 text-gray-500 dark:text-gray-400" />
+                                                <Icon icon={status.icon} className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                                                 {status.label}
                                             </DropdownMenuRadioItem>
                                         ))}
