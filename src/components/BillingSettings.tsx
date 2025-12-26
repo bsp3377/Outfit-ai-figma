@@ -56,6 +56,20 @@ export function BillingSettings() {
     fetchTransactions();
   }, [credits.creditsTotal]);
 
+  // Lock body scroll when payment modal is open
+  useEffect(() => {
+    if (isPaymentLoading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isPaymentLoading]);
+
   const plans = [
     {
       id: 'free',
@@ -278,8 +292,8 @@ export function BillingSettings() {
                 onClick={() => handleUpgrade(plan.id)}
                 disabled={plan.id === credits.planTier || isPaymentLoading === 'pro'}
                 className={`w-full py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${plan.id === credits.planTier
-                    ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg disabled:opacity-70'
+                  ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg disabled:opacity-70'
                   }`}
               >
                 {isPaymentLoading === 'pro' && plan.id === 'pro' && <Loader2 className="w-4 h-4 animate-spin" />}

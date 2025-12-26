@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, X, ChevronDown, ChevronUp, Zap, Images, BookmarkCheck, Gauge, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { initiateRazorpayPayment, isRazorpayConfigured } from '../utils/razorpay';
@@ -156,6 +156,20 @@ function FAQItem({ question, answer }: FAQItemProps) {
 
 export function Pricing() {
   const [isPaymentLoading, setIsPaymentLoading] = useState(false);
+
+  // Lock body scroll when payment modal is open
+  useEffect(() => {
+    if (isPaymentLoading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isPaymentLoading]);
+
   const plans = [
     {
       name: 'Free Trial',
