@@ -233,35 +233,35 @@ export function BillingSettings() {
           }`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
             <div>
-              <p className="text-sm opacity-70 mb-1">Current Plan</p>
-              <h2 className="text-2xl capitalize">{credits.planTier}</h2>
+              <p className={`text-sm mb-1 ${credits.planTier === 'pro' ? 'text-white/80' : 'text-gray-600 dark:text-gray-300'}`}>Current Plan</p>
+              <h2 className={`text-2xl font-bold capitalize ${credits.planTier === 'pro' ? 'text-white' : 'text-gray-800 dark:text-white'}`}>{credits.planTier}</h2>
             </div>
-            <div className="mt-4 sm:mt-0">
-              <p className="text-3xl">{credits.planTier === 'pro' ? '₹999' : '₹0'}</p>
-              <p className="text-sm opacity-70">{credits.planTier === 'pro' ? 'per month' : 'Free tier'}</p>
+            <div className="mt-4 sm:mt-0 text-right">
+              <p className={`text-3xl font-bold ${credits.planTier === 'pro' ? 'text-white' : 'text-gray-800 dark:text-white'}`}>{credits.planTier === 'pro' ? '₹999' : '₹0'}</p>
+              <p className={`text-sm ${credits.planTier === 'pro' ? 'text-white/80' : 'text-gray-600 dark:text-gray-300'}`}>{credits.planTier === 'pro' ? 'per month' : 'Free tier'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className={`backdrop-blur-sm rounded-lg p-4 ${credits.planTier === 'pro'
-                ? 'bg-white/10'
-                : 'bg-gray-900/5 dark:bg-white/10'
+              ? 'bg-white/10'
+              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
               }`}>
               <div className="flex items-center gap-2 mb-2">
-                <Coins className="w-5 h-5" />
-                <p className="text-sm">Credits Remaining</p>
+                <Coins className={`w-5 h-5 ${credits.planTier === 'pro' ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
+                <p className={`text-sm ${credits.planTier === 'pro' ? 'text-white/80' : 'text-gray-600 dark:text-gray-300'}`}>Credits Remaining</p>
               </div>
-              <p className="text-2xl">{credits.creditsRemaining}</p>
+              <p className={`text-2xl font-bold ${credits.planTier === 'pro' ? 'text-white' : 'text-gray-800 dark:text-white'}`}>{credits.creditsRemaining}</p>
             </div>
             <div className={`backdrop-blur-sm rounded-lg p-4 ${credits.planTier === 'pro'
-                ? 'bg-white/10'
-                : 'bg-gray-900/5 dark:bg-white/10'
+              ? 'bg-white/10'
+              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
               }`}>
               <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-5 h-5" />
-                <p className="text-sm">{credits.planTier === 'pro' ? 'Renewal Date' : 'Plan Type'}</p>
+                <Calendar className={`w-5 h-5 ${credits.planTier === 'pro' ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
+                <p className={`text-sm ${credits.planTier === 'pro' ? 'text-white/80' : 'text-gray-600 dark:text-gray-300'}`}>{credits.planTier === 'pro' ? 'Renewal Date' : 'Plan Type'}</p>
               </div>
-              <p className="text-lg">
+              <p className={`text-lg font-semibold ${credits.planTier === 'pro' ? 'text-white' : 'text-gray-800 dark:text-white'}`}>
                 {credits.renewalDate
                   ? credits.renewalDate.toLocaleDateString()
                   : credits.planTier === 'free' ? 'One-time credits' : 'N/A'}
@@ -270,21 +270,21 @@ export function BillingSettings() {
           </div>
 
           <div className={`backdrop-blur-sm rounded-lg p-3 ${credits.planTier === 'pro'
-              ? 'bg-white/10'
-              : 'bg-gray-900/5 dark:bg-white/10'
+            ? 'bg-white/10'
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
             }`}>
-            <div className="flex items-center justify-between text-sm mb-2">
+            <div className={`flex items-center justify-between text-sm mb-2 ${credits.planTier === 'pro' ? 'text-white/80' : 'text-gray-700 dark:text-gray-300'}`}>
               <span>Usage: {credits.creditsUsed} / {credits.creditsTotal} credits</span>
-              <span>{credits.creditsTotal > 0 ? Math.round((credits.creditsUsed / credits.creditsTotal) * 100) : 0}%</span>
+              <span className={`font-medium ${credits.planTier === 'pro' ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`}>{credits.creditsTotal > 0 ? Math.round((credits.creditsUsed / credits.creditsTotal) * 100) : 0}%</span>
             </div>
             <div className={`w-full rounded-full h-2 ${credits.planTier === 'pro'
-                ? 'bg-white/20'
-                : 'bg-gray-900/10 dark:bg-white/20'
+              ? 'bg-white/20'
+              : 'bg-gray-900/10 dark:bg-white/20'
               }`}>
               <div
                 className={`rounded-full h-2 transition-all ${credits.planTier === 'pro'
-                    ? 'bg-white'
-                    : 'bg-purple-600'
+                  ? 'bg-white'
+                  : 'bg-purple-600'
                   }`}
                 style={{ width: `${credits.creditsTotal > 0 ? (credits.creditsUsed / credits.creditsTotal) * 100 : 0}%` }}
               ></div>
