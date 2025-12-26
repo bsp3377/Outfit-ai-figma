@@ -25,6 +25,8 @@ function lockScroll(): void {
     // Lock scrolling
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    // Add class for CSS targeting
+    document.body.classList.add('razorpay-active');
 }
 
 /**
@@ -33,6 +35,8 @@ function lockScroll(): void {
 function unlockScroll(): void {
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
+    // Remove class
+    document.body.classList.remove('razorpay-active');
     // Restore scroll position
     window.scrollTo(0, scrollPosition);
 }

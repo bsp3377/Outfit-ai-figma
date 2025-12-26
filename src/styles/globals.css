@@ -183,3 +183,37 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Razorpay Payment Modal - Ensure full visibility */
+.razorpay-container {
+  position: fixed !important;
+  z-index: 99999 !important;
+}
+
+.razorpay-container iframe {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+}
+
+.razorpay-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99998 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* When payment is loading, ensure body doesn't scroll and main container doesn't clip */
+body.razorpay-active {
+  overflow: hidden !important;
+}
+
+body.razorpay-active * {
+  overflow: visible !important;
+}
