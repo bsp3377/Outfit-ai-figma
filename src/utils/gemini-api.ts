@@ -46,6 +46,7 @@ interface ImageGenerationParams {
   logoImageMimeType?: string;
   inspiredTemplateBase64?: string;
   inspiredTemplateMimeType?: string;
+  detailImages?: ProductImage[]; // Detail shots for texture, logo, button design references
 }
 
 interface ImageGenerationResult {
@@ -59,7 +60,7 @@ interface ImageGenerationResult {
  * Includes logo placement instructions and inspired template references
  */
 function buildImagePrompt(params: ImageGenerationParams): string {
-  const { productDescription, tabType, formData, logoImageBase64, inspiredTemplateBase64 } = params;
+  const { productDescription, tabType, formData, logoImageBase64, inspiredTemplateBase64, detailImages } = params;
 
   // Quality enhancement suffix for all prompts
   const qualitySuffix = '8K resolution, ultra-detailed, professional retouching, magazine-quality, high dynamic range, pristine clarity, luxury aesthetic.';
@@ -91,6 +92,11 @@ function buildImagePrompt(params: ImageGenerationParams): string {
     ? 'IMPORTANT: Use the style, composition, color palette, lighting, and overall aesthetic from the inspired template image as a strong reference. Match the visual mood, layout approach, and styling while featuring the product from the product reference image.'
     : '';
 
+  // Detail shots instructions
+  const detailInstructions = detailImages && detailImages.length > 0
+    ? `CRITICAL DETAIL REQUIREMENT: Reference the detail shot images provided for accurate reproduction of specific textures, logos, button designs, fabric patterns, stitching, and other fine details. Ensure these details are clearly visible and accurately rendered in the final image.`
+    : '';
+
   if (tabType === 'fashion') {
     const age = formData.age ? `${formData.age} year old` : 'young adult';
     const ethnicity = formData.ethnicity || 'diverse';
@@ -108,7 +114,7 @@ function buildImagePrompt(params: ImageGenerationParams): string {
     const keyLight = formData.keyLight ? `, ${formData.keyLight} key light positioning` : '';
     const advancedPrompt = formData.advancedPrompt ? `. Additional creative direction: ${formData.advancedPrompt}` : '';
 
-    return `Ultra-premium high-end e-commerce fashion photography: A stunning ${age} ${ethnicity} ${gender} model with ${hairstyle} hairstyle, in a ${pose} pose, wearing and elegantly showcasing ALL the products from the reference images together in a single cohesive outfit look. ${background}, photographed with ${camera}, ${lighting}${keyLight}. The model should be impeccably styled, wearing ALL the exact garments/products/accessories from the uploaded images with perfect fit and styling. Each product must be clearly visible and featured. Photorealistic, Vogue-quality commercial photography, razor-sharp focus on product details, flawless skin retouching, cinematic color grading. ${templateInstructions} ${logoInstructions}${advancedPrompt} Products: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
+    return `Ultra-premium high-end e-commerce fashion photography: A stunning ${age} ${ethnicity} ${gender} model with ${hairstyle} hairstyle, in a ${pose} pose, wearing and elegantly showcasing ALL the products from the reference images together in a single cohesive outfit look. ${background}, photographed with ${camera}, ${lighting}${keyLight}. The model should be impeccably styled, wearing ALL the exact garments/products/accessories from the uploaded images with perfect fit and styling. Each product must be clearly visible and featured. Photorealistic, Vogue-quality commercial photography, razor-sharp focus on product details, flawless skin retouching, cinematic color grading. ${templateInstructions} ${detailInstructions} ${logoInstructions}${advancedPrompt} Products: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
 
   } else if (tabType === 'jewellery') {
     const shotStyle = formData.accessoriesShotStyle?.replace(/-/g, ' ') || 'luxury editorial';
@@ -126,7 +132,7 @@ function buildImagePrompt(params: ImageGenerationParams): string {
     const retouch = formData.accessoriesRetouch?.replace(/-/g, ' ') || 'flawless editorial';
     const pose = formData.accessoriesPose?.replace(/-/g, ' ') || 'jewelry prominently featured';
 
-    return `Ultra-premium jewelry/accessories advertising photography: ${shotStyle} styling, ${framing} with ${emphasis}. An elegant model gracefully wearing or displaying ALL the jewelry/accessories from the reference images together as a coordinated look. ${background} backdrop, ${lighting}, shot with ${cameraLook} lens for ${depth} effect, ${retouch} level retouching. Model pose: ${pose}. Cartier/Tiffany-level luxury aesthetic, each piece must be clearly visible - gemstones sparkling with perfect light refraction, metal surfaces gleaming, impeccable focus on every product with beautiful model complement. ${templateInstructions} ${logoInstructions} Products: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
+    return `Ultra-premium jewelry/accessories advertising photography: ${shotStyle} styling, ${framing} with ${emphasis}. An elegant model gracefully wearing or displaying ALL the jewelry/accessories from the reference images together as a coordinated look. ${background} backdrop, ${lighting}, shot with ${cameraLook} lens for ${depth} effect, ${retouch} level retouching. Model pose: ${pose}. Cartier/Tiffany-level luxury aesthetic, each piece must be clearly visible - gemstones sparkling with perfect light refraction, metal surfaces gleaming, impeccable focus on every product with beautiful model complement. ${templateInstructions} ${detailInstructions} ${logoInstructions} Products: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
 
   } else {
     // Creative/Flatlay
@@ -149,7 +155,7 @@ function buildImagePrompt(params: ImageGenerationParams): string {
 
     const propsText = props && props !== 'none' ? ` Styled with ${props} as complementary props.` : '';
 
-    return `Ultra-premium ${theme} product photography: ${layout} ${composition} for ${category}. ${shotType} style captured from ${angle} camera angle. ${background} background, ${lighting} with ${shadow}. ${colorMood} color grading. The product from the reference image is the hero element, styled beautifully for high-end e-commerce.${propsText} ${templateInstructions} ${logoInstructions} Product: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
+    return `Ultra-premium ${theme} product photography: ${layout} ${composition} for ${category}. ${shotType} style captured from ${angle} camera angle. ${background} background, ${lighting} with ${shadow}. ${colorMood} color grading. The product from the reference image is the hero element, styled beautifully for high-end e-commerce.${propsText} ${templateInstructions} ${detailInstructions} ${logoInstructions} Product: ${productDescription}. ${qualitySuffix} ${negativeConstraint}`;
   }
 }
 
@@ -307,6 +313,27 @@ export async function generateImageWithGemini(params: ImageGenerationParams): Pr
       }
     });
     console.log('✨ Including inspired template as style reference');
+  }
+
+  // Add detail images if provided (for texture, logo, button design references)
+  if (params.detailImages && params.detailImages.length > 0) {
+    parts.push({
+      text: `[DETAIL SHOTS - Use these ${params.detailImages.length} images as reference for specific textures, logos, button designs, stitching, and fine details]`
+    });
+
+    params.detailImages.forEach((img, index) => {
+      const detailLabel = img.name || `Detail ${index + 1}`;
+      parts.push({
+        text: `[DETAIL ${index + 1}: ${detailLabel}]`
+      });
+      parts.push({
+        inlineData: {
+          mimeType: img.mimeType,
+          data: img.base64
+        }
+      });
+    });
+    console.log(`🔍 Including ${params.detailImages.length} detail reference images`);
   }
 
   try {

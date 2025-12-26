@@ -50,6 +50,7 @@ export function GeneratorHub() {
   const [referenceImage, setReferenceImage] = useState<GeneratedImage | null>(null);
   const [logoFile, setLogoFile] = useState<UploadedFile | null>(null);
   const [inspiredTemplateFile, setInspiredTemplateFile] = useState<UploadedFile | null>(null);
+  const [detailFiles, setDetailFiles] = useState<UploadedFile[]>([]); // Detail shots for texture/logo/button references
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
   const [autoSelectHairstyle, setAutoSelectHairstyle] = useState<boolean>(false);
   const [autoSelectPose, setAutoSelectPose] = useState<boolean>(false);
@@ -212,6 +213,39 @@ export function GeneratorHub() {
     toast.success('Inspired template removed');
   };
 
+  // Detail shots upload handlers (for texture, logo, button design references)
+  const handleDetailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (detailFiles.length + files.length > 5) {
+      toast.error('Maximum 5 detail images allowed');
+      return;
+    }
+
+    files.forEach(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 10MB`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newFile: UploadedFile = {
+          id: Date.now().toString() + Math.random(),
+          url: reader.result as string,
+          name: file.name,
+          size: file.size,
+        };
+        setDetailFiles(prev => [...prev, newFile]);
+      };
+      reader.readAsDataURL(file);
+    });
+    toast.success('Detail image(s) uploaded!');
+  };
+
+  const removeDetailFile = (id: string) => {
+    setDetailFiles(prev => prev.filter(f => f.id !== id));
+    toast.success('Detail image removed');
+  };
 
 
   const handleDragStart = (index: number) => {
@@ -343,6 +377,22 @@ export function GeneratorHub() {
       if (logoImageBase64) console.log('   - Including brand logo');
       if (inspiredTemplateBase64) console.log('   - Including inspired template reference');
 
+      // Extract detail images for texture/logo/button references
+      const detailImagesData: { base64: string; mimeType: string; name: string }[] = [];
+      for (const file of detailFiles) {
+        if (file.url.startsWith('data:')) {
+          const matches = file.url.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            detailImagesData.push({
+              mimeType: matches[1],
+              base64: matches[2],
+              name: file.name
+            });
+          }
+        }
+      }
+      if (detailImagesData.length > 0) console.log(`   - Including ${detailImagesData.length} detail reference images`);
+
       // Prepare formData with auto-selected values if enabled
       const finalFormData = { ...formData };
 
@@ -371,6 +421,7 @@ export function GeneratorHub() {
         logoImageMimeType,
         inspiredTemplateBase64,
         inspiredTemplateMimeType,
+        detailImages: detailImagesData,
       });
 
       console.log('✅ Image generated successfully!');
@@ -1212,6 +1263,77 @@ export function GeneratorHub() {
                     <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Add more images ({5 - uploadedFiles.length} remaining)
+                    </p>
+                  </div>
+                </label>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Detail Shots Upload Section */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-medium">Detail Shots (Optional)</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                Upload close-ups of textures, logos, buttons, stitching
+              </p>
+            </div>
+            <span className="text-xs text-gray-500 dark:text-gray-500">
+              {detailFiles.length}/5
+            </span>
+          </div>
+
+          {detailFiles.length === 0 ? (
+            <label className="block">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleDetailUpload}
+                className="hidden"
+              />
+              <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center cursor-pointer hover:border-purple-600 dark:hover:border-purple-600 transition-all">
+                <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Add detail reference images
+                </p>
+              </div>
+            </label>
+          ) : (
+            <div className="space-y-2">
+              {/* Thumbnail grid for detail images */}
+              <div className="grid grid-cols-5 gap-2">
+                {detailFiles.map((file) => (
+                  <div key={file.id} className="relative group">
+                    <img
+                      src={file.url}
+                      alt={file.name}
+                      className="w-full h-12 object-cover rounded border border-gray-200 dark:border-gray-700"
+                    />
+                    <button
+                      onClick={() => removeDetailFile(file.id)}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {detailFiles.length < 5 && (
+                <label className="block">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleDetailUpload}
+                    className="hidden"
+                  />
+                  <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded p-2 text-center cursor-pointer hover:border-purple-600 dark:hover:border-purple-600 transition-all">
+                    <p className="text-xs text-gray-500">
+                      + Add more ({5 - detailFiles.length} remaining)
                     </p>
                   </div>
                 </label>
