@@ -364,7 +364,7 @@ export function useCredits() {
             console.log('🔄 Attempting to add credits:', creditsToAdd);
             // DIRECT CALL to supabase here to capture the specific error for the user
             const newCreditsTotal = credits.creditsTotal + creditsToAdd;
-            const { error: updateError } = await supabase
+            const { error: creditUpdateError } = await supabase
                 .from('user_credits')
                 .update({
                     credits_total: newCreditsTotal,
@@ -372,14 +372,17 @@ export function useCredits() {
                 })
                 .eq('user_id', userId);
 
-            if (updateError) {
-                console.error('❌ Error in direct update:', updateError);
-                return { success: false, message: `Database Error: ${updateError.message}` };
+            if (creditUpdateError) {
+                console.error('❌ Error in direct update:', creditUpdateError);
+                return { success: false, message: `Database Error: ${creditUpdateError.message}` };
             }
 
             // Manually trigger local update since we bypassed addCredits wrapper
             // or just call fetchCredits to be safe
-            fetchCredits();
+            await fetchCredits();
+
+            // CRITICAL: Dispatch event so other components (Header) update immediately
+            window.dispatchEvent(new Event('credits-updated'));
 
             // Log transaction
             await logTransaction(
