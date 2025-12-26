@@ -16,6 +16,7 @@ import {
 import logoImage from 'figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png';
 import { supabase } from '../utils/supabase';
 import { UserDropdown } from './ui/user-dropdown';
+import { useCredits } from '../hooks/useCredits';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
@@ -38,7 +39,7 @@ export function AuthenticatedLayout({
 
   const [userData, setUserData] = useState({ name: '', email: '' });
   const [navVisible, setNavVisible] = useState(false);
-  const creditsRemaining = 87;
+  const credits = useCredits();
 
   // Scroll detection - show nav when scrolling, hide when idle
   useEffect(() => {
@@ -136,7 +137,7 @@ export function AuthenticatedLayout({
             <div className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Coins className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <span className="text-sm">
-                <span className="text-purple-600 dark:text-purple-400">{creditsRemaining}</span>
+                <span className="text-purple-600 dark:text-purple-400">{credits.creditsRemaining}</span>
                 {' '}credits
               </span>
             </div>
@@ -183,7 +184,7 @@ export function AuthenticatedLayout({
             <div className="flex items-center gap-1 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Coins className="w-3 h-3 text-purple-600 dark:text-purple-400" />
               <span className="text-xs">
-                <span className="text-purple-600 dark:text-purple-400">{creditsRemaining}</span>
+                <span className="text-purple-600 dark:text-purple-400">{credits.creditsRemaining}</span>
               </span>
             </div>
 
