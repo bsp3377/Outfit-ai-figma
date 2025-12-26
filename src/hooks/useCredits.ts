@@ -272,6 +272,10 @@ export function useCredits() {
         }
 
         try {
+            // Get current user's email
+            const { data: { user } } = await supabase.auth.getUser();
+            const userEmail = user?.email?.toLowerCase();
+
             // Check if code exists
             const { data: promoCode, error: fetchError } = await supabase
                 .from('promo_codes')
@@ -291,6 +295,11 @@ export function useCredits() {
             // Check if expired
             if (promoCode.expires_at && new Date(promoCode.expires_at) < new Date()) {
                 return { success: false, message: 'This code has expired' };
+            }
+
+            // Check if code is restricted to a specific user
+            if (promoCode.for_user_email && promoCode.for_user_email.toLowerCase() !== userEmail) {
+                return { success: false, message: 'This code is not valid for your account' };
             }
 
             // Mark code as used
