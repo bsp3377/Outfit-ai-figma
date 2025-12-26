@@ -227,30 +227,36 @@ export function BillingSettings() {
       <div>
         <h1 className="text-2xl sm:text-3xl mb-6">Billing & Credits</h1>
 
-        <div className={`rounded-2xl p-6 text-white ${credits.planTier === 'pro'
-          ? 'bg-gradient-to-br from-purple-600 to-pink-600'
-          : 'bg-gradient-to-br from-gray-600 to-gray-700'
+        <div className={`rounded-2xl p-6 ${credits.planTier === 'pro'
+          ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white'
+          : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700 text-gray-900 dark:text-white'
           }`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
             <div>
-              <p className="text-sm opacity-80 mb-1">Current Plan</p>
+              <p className="text-sm opacity-70 mb-1">Current Plan</p>
               <h2 className="text-2xl capitalize">{credits.planTier}</h2>
             </div>
             <div className="mt-4 sm:mt-0">
               <p className="text-3xl">{credits.planTier === 'pro' ? '₹999' : '₹0'}</p>
-              <p className="text-sm opacity-80">{credits.planTier === 'pro' ? 'per month' : 'Free tier'}</p>
+              <p className="text-sm opacity-70">{credits.planTier === 'pro' ? 'per month' : 'Free tier'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <div className={`backdrop-blur-sm rounded-lg p-4 ${credits.planTier === 'pro'
+                ? 'bg-white/10'
+                : 'bg-gray-900/5 dark:bg-white/10'
+              }`}>
               <div className="flex items-center gap-2 mb-2">
                 <Coins className="w-5 h-5" />
                 <p className="text-sm">Credits Remaining</p>
               </div>
               <p className="text-2xl">{credits.creditsRemaining}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <div className={`backdrop-blur-sm rounded-lg p-4 ${credits.planTier === 'pro'
+                ? 'bg-white/10'
+                : 'bg-gray-900/5 dark:bg-white/10'
+              }`}>
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-5 h-5" />
                 <p className="text-sm">{credits.planTier === 'pro' ? 'Renewal Date' : 'Plan Type'}</p>
@@ -263,14 +269,23 @@ export function BillingSettings() {
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+          <div className={`backdrop-blur-sm rounded-lg p-3 ${credits.planTier === 'pro'
+              ? 'bg-white/10'
+              : 'bg-gray-900/5 dark:bg-white/10'
+            }`}>
             <div className="flex items-center justify-between text-sm mb-2">
               <span>Usage: {credits.creditsUsed} / {credits.creditsTotal} credits</span>
               <span>{credits.creditsTotal > 0 ? Math.round((credits.creditsUsed / credits.creditsTotal) * 100) : 0}%</span>
             </div>
-            <div className="w-full bg-white/20 rounded-full h-2">
+            <div className={`w-full rounded-full h-2 ${credits.planTier === 'pro'
+                ? 'bg-white/20'
+                : 'bg-gray-900/10 dark:bg-white/20'
+              }`}>
               <div
-                className="bg-white rounded-full h-2 transition-all"
+                className={`rounded-full h-2 transition-all ${credits.planTier === 'pro'
+                    ? 'bg-white'
+                    : 'bg-purple-600'
+                  }`}
                 style={{ width: `${credits.creditsTotal > 0 ? (credits.creditsUsed / credits.creditsTotal) * 100 : 0}%` }}
               ></div>
             </div>
