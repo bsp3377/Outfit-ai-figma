@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Play, CheckCircle2, Clock, Users } from 'lucide-react';
 import { useVideoTutorials } from '../utils/useVideoTutorials';
 
@@ -7,7 +9,20 @@ interface HowItWorksProps {
 
 export function HowItWorks({ onNavigate }: HowItWorksProps) {
   const { tutorials, featuredVideo, isLoading } = useVideoTutorials();
+  const location = useLocation();
 
+  // Scroll to section based on hash (e.g., #video-tutorials)
+  useEffect(() => {
+    if (location.hash) {
+      const element = document.querySelector(location.hash);
+      if (element) {
+        // Small delay to ensure page is rendered
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, [location.hash]);
   const quickSteps = [
     {
       step: 1,
@@ -71,7 +86,7 @@ export function HowItWorks({ onNavigate }: HowItWorksProps) {
       </section>
 
       {/* Video Tutorials */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
+      <section id="video-tutorials" className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl mb-4">Video Tutorials</h2>

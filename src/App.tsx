@@ -303,12 +303,12 @@ export default function App() {
                           >
                             {landingContent.heroCtaPrimary}
                           </button>
-                          <a
-                            href="#demo"
+                          <button
+                            onClick={() => navigate("/how-it-works#video-tutorials")}
                             className="px-8 py-4 border-2 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-600 rounded-lg hover:scale-105 hover:shadow-md transition-all text-lg"
                           >
                             {landingContent.heroCtaSecondary}
-                          </a>
+                          </button>
                         </div>
                       </div>
 
