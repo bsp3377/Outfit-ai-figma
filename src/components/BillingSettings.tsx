@@ -193,16 +193,24 @@ export function BillingSettings() {
   };
 
   const handleRedeemCode = async () => {
-    if (!promoCode.trim()) return;
+    console.log('🎟️ Promo code button clicked, code:', promoCode);
+    if (!promoCode.trim()) {
+      console.log('❌ Empty code, returning');
+      return;
+    }
 
     setIsRedeemingCode(true);
+    console.log('🔄 Calling redeemPromoCode...');
     const result = await credits.redeemPromoCode(promoCode);
+    console.log('📦 Result:', result);
     setIsRedeemingCode(false);
 
     if (result.success) {
+      console.log('✅ Success, showing toast');
       toast.success(result.message);
       setPromoCode(''); // Clear input on success
     } else {
+      console.log('❌ Failed, showing error toast');
       toast.error(result.message);
     }
   };

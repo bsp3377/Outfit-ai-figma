@@ -101,11 +101,13 @@ export function useCredits() {
 
             if (data) {
                 const userCredits = data as UserCredits;
+                const total = userCredits.credits_total ?? 10;
+                const used = userCredits.credits_used ?? 0;
                 setCredits({
-                    planTier: userCredits.plan_tier,
-                    creditsTotal: userCredits.credits_total,
-                    creditsUsed: userCredits.credits_used,
-                    creditsRemaining: userCredits.credits_total - userCredits.credits_used,
+                    planTier: userCredits.plan_tier || 'free',
+                    creditsTotal: total,
+                    creditsUsed: used,
+                    creditsRemaining: total - used,
                     renewalDate: userCredits.renewal_date ? new Date(userCredits.renewal_date) : null,
                     isLoading: false,
                     error: null,
@@ -276,7 +278,9 @@ export function useCredits() {
 
     // Redeem a promo code
     const redeemPromoCode = useCallback(async (code: string): Promise<{ success: boolean; message: string; credits?: number }> => {
+        console.log('🎟️ redeemPromoCode called with:', code, 'userId:', userId);
         if (!userId || !isSupabaseConfigured) {
+            console.log('❌ No userId or Supabase not configured');
             return { success: false, message: 'Please sign in to redeem a code' };
         }
 
@@ -289,15 +293,20 @@ export function useCredits() {
             // Get current user's email
             const { data: { user } } = await supabase.auth.getUser();
             const userEmail = user?.email?.toLowerCase();
+            console.log('👤 User email:', userEmail);
 
             // Check if code exists
+            console.log('🔍 Checking code in database:', trimmedCode);
             const { data: promoCode, error: fetchError } = await supabase
                 .from('promo_codes')
                 .select('*')
                 .eq('code', trimmedCode)
                 .single();
 
+            console.log('📦 Promo code data:', promoCode, 'Error:', fetchError);
+
             if (fetchError || !promoCode) {
+                console.log('❌ Code not found or error');
                 return { success: false, message: 'Invalid promo code' };
             }
 
