@@ -660,6 +660,18 @@ export function GeneratorHub() {
       return;
     }
 
+    // Restriction: Ultra Quality is Pro only
+    if (credits.planTier === 'free') {
+      toast.error('Ultra Quality is a Pro feature', {
+        description: 'Upgrade to Pro to generate 4x detail HD images',
+        action: {
+          label: 'Upgrade',
+          onClick: () => document.getElementById('billing-tab-trigger')?.click()
+        }
+      });
+      return;
+    }
+
     setIsGeneratingHD(true);
 
     try {
@@ -747,6 +759,18 @@ export function GeneratorHub() {
   };
 
   const useAsReference = (id: string) => {
+    // Restriction: Reference model is Pro only
+    if (credits.planTier === 'free') {
+      toast.error('Reference models are Pro only', {
+        description: 'Upgrade to Pro to use images as consistent character references',
+        action: {
+          label: 'Upgrade',
+          onClick: () => document.getElementById('billing-tab-trigger')?.click()
+        }
+      });
+      return;
+    }
+
     const img = generatedImages.find(img => img.id === id);
     if (img) {
       setReferenceImage(img);

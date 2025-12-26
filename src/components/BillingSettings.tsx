@@ -78,14 +78,14 @@ export function BillingSettings() {
       name: 'Free Trial',
       price: '₹0',
       credits: 10,
-      features: ['10 generations', 'Basic models', 'Standard quality'],
+      features: ['10 generations', 'Basic models', 'Standard quality', 'No ref model support'],
     },
     {
       id: 'pro',
       name: 'Pro',
       price: '₹999',
       credits: 100,
-      features: ['100 generations', 'All models', 'Ultra quality', 'Priority support', 'Batch processing'],
+      features: ['100 generations', 'All models', 'Ultra quality (4x details)', 'Priority support', 'Batch processing'],
       popular: true,
     },
     {
