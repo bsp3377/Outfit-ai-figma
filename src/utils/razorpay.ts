@@ -153,11 +153,13 @@ export function initiateRazorpayPayment({
         },
         handler: (response: RazorpaySuccessResponse) => {
             console.log('Payment successful:', response);
+            document.body.style.overflow = ''; // Restore scroll
             onSuccess(response);
         },
         modal: {
             ondismiss: () => {
                 console.log('Payment modal dismissed');
+                document.body.style.overflow = ''; // Restore scroll
                 onDismiss?.();
             },
             escape: true,
@@ -169,9 +171,12 @@ export function initiateRazorpayPayment({
         const razorpay = new window.Razorpay(options);
 
         razorpay.on('payment.failed', () => {
+            document.body.style.overflow = ''; // Restore scroll
             onFailure('Payment failed. Please try again.');
         });
 
+        // Lock scroll when modal opens
+        document.body.style.overflow = 'hidden';
         razorpay.open();
     } catch (error) {
         console.error('Razorpay initialization error:', error);
@@ -246,11 +251,13 @@ export function initiateCreditPackPayment({
         },
         handler: (response: RazorpaySuccessResponse) => {
             console.log('Credit pack payment successful:', response);
+            document.body.style.overflow = ''; // Restore scroll
             onSuccess(response, pack.credits);
         },
         modal: {
             ondismiss: () => {
                 console.log('Credit pack payment modal dismissed');
+                document.body.style.overflow = ''; // Restore scroll
                 onDismiss?.();
             },
             escape: true,
@@ -262,9 +269,12 @@ export function initiateCreditPackPayment({
         const razorpay = new window.Razorpay(options);
 
         razorpay.on('payment.failed', () => {
+            document.body.style.overflow = ''; // Restore scroll
             onFailure('Payment failed. Please try again.');
         });
 
+        // Lock scroll when modal opens
+        document.body.style.overflow = 'hidden';
         razorpay.open();
     } catch (error) {
         console.error('Razorpay initialization error:', error);
