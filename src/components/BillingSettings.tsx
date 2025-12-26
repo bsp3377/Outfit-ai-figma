@@ -192,8 +192,12 @@ export function BillingSettings() {
     toast.success('Invoice downloaded');
   };
 
+  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
   const handleRedeemCode = async () => {
     console.log('🎟️ Promo code button clicked, code:', promoCode);
+    setFeedbackMessage(null); // Clear previous message
+
     if (!promoCode.trim()) {
       console.log('❌ Empty code, returning');
       return;
@@ -208,10 +212,12 @@ export function BillingSettings() {
     if (result.success) {
       console.log('✅ Success, showing toast');
       toast.success(result.message);
+      setFeedbackMessage({ type: 'success', text: result.message });
       setPromoCode(''); // Clear input on success
     } else {
       console.log('❌ Failed, showing error toast');
       toast.error(result.message);
+      setFeedbackMessage({ type: 'error', text: result.message });
     }
   };
 
@@ -415,6 +421,17 @@ export function BillingSettings() {
               {isRedeemingCode ? 'Applying...' : 'Apply Code'}
             </button>
           </div>
+          {feedbackMessage && (
+            <div className={`mt-3 text-sm flex items-center gap-2 ${feedbackMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+              }`}>
+              {feedbackMessage.type === 'success' ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <div className="w-4 h-4 flex items-center justify-center font-bold">!</div>
+              )}
+              {feedbackMessage.text}
+            </div>
+          )}
         </div>
       </div>
 

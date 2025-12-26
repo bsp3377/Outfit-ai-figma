@@ -297,18 +297,28 @@ export function useCredits() {
 
             // Check if code exists
             console.log('🔍 Checking code in database:', trimmedCode);
-            const { data: promoCode, error: fetchError } = await supabase
+            const { data: promoCodeData, error: fetchError } = await supabase
                 .from('promo_codes')
                 .select('*')
                 .eq('code', trimmedCode)
                 .single();
 
-            console.log('📦 Promo code data:', promoCode, 'Error:', fetchError);
+            console.log('📦 Promo code data:', promoCodeData, 'Error:', fetchError);
 
-            if (fetchError || !promoCode) {
-                console.log('❌ Code not found or error');
+            if (fetchError) {
+                console.error('❌ Error fetching promo code:', fetchError);
+                if (fetchError.code === 'PGRST116') { // No rows found
+                    return { success: false, message: 'Invalid promo code' };
+                }
+                // Handle RLS or other system errors
+                return { success: false, message: 'System error: Unable to verify code at this time.' };
+            }
+
+            if (!promoCodeData) {
                 return { success: false, message: 'Invalid promo code' };
             }
+            // Use the data variable we just defined
+            const promoCode = promoCodeData;
 
             // Check if already used
             if (promoCode.is_used) {
@@ -342,11 +352,34 @@ export function useCredits() {
 
             // Add credits to user
             const creditsToAdd = promoCode.credits || 50;
-            const addSuccess = await addCredits(creditsToAdd);
 
-            if (!addSuccess) {
-                return { success: false, message: 'Failed to add credits. Please contact support.' };
+            // We need to capture the specific error from addCredits for debugging
+            // Since addCredits currently only returns boolean, we'll improvise or trust console logs
+            // Ideally refactor addCredits, but for now let's try-catch the call if we inline it or modify addCredits
+
+            // Let's modify the addCredits call logic slightly by peeking into the implementation
+            // Actually, safest is to trust addCredits executes the update. 
+            // If it returns false, it's likely an exception. 
+
+            console.log('🔄 Attempting to add credits:', creditsToAdd);
+            // DIRECT CALL to supabase here to capture the specific error for the user
+            const newCreditsTotal = credits.creditsTotal + creditsToAdd;
+            const { error: updateError } = await supabase
+                .from('user_credits')
+                .update({
+                    credits_total: newCreditsTotal,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', userId);
+
+            if (updateError) {
+                console.error('❌ Error in direct update:', updateError);
+                return { success: false, message: `Database Error: ${updateError.message}` };
             }
+
+            // Manually trigger local update since we bypassed addCredits wrapper
+            // or just call fetchCredits to be safe
+            fetchCredits();
 
             // Log transaction
             await logTransaction(
@@ -361,11 +394,11 @@ export function useCredits() {
                 message: `Successfully added ${creditsToAdd} credits!`,
                 credits: creditsToAdd
             };
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error redeeming promo code:', err);
-            return { success: false, message: 'An error occurred. Please try again.' };
+            return { success: false, message: `System Error: ${err.message || 'Unknown error'}` };
         }
-    }, [userId, addCredits, logTransaction]);
+    }, [userId, credits.creditsTotal, fetchCredits, logTransaction]);
 
     // Check if user can purchase extra credits (Pro only)
     const canPurchaseCredits = credits.planTier === 'pro' || credits.planTier === 'corporate';
@@ -392,12 +425,46 @@ export function useCredits() {
         const handleCreditsUpdated = () => {
             // Skip if this instance just dispatched the event
             if (isUpdatingRef.current) return;
+            console.log('🔄 Credit update event received, refetching...');
             fetchCredits();
         };
 
         window.addEventListener('credits-updated', handleCreditsUpdated);
         return () => window.removeEventListener('credits-updated', handleCreditsUpdated);
     }, [fetchCredits]);
+
+    // Subscribe to Realtime changes for user_credits
+    useEffect(() => {
+        if (!userId || !isSupabaseConfigured) return;
+
+        console.log('🔌 Subscribing to credit changes for user:', userId);
+        const channel = supabase
+            .channel('user_credits_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // Listen to INSERT, UPDATE, DELETE
+                    schema: 'public',
+                    table: 'user_credits',
+                    filter: `user_id=eq.${userId}`,
+                },
+                (payload) => {
+                    console.log('⚡️ Realtime credit update received:', payload);
+                    // Force refresh regardless of who triggered it
+                    fetchCredits();
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Realtime subscription active');
+                }
+            });
+
+        return () => {
+            console.log('🔌 Unsubscribing from credit changes');
+            supabase.removeChannel(channel);
+        };
+    }, [userId, fetchCredits]);
 
     return {
         ...credits,
