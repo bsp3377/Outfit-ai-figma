@@ -11,6 +11,33 @@ export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
 // Check if Razorpay is configured
 export const isRazorpayConfigured = !!RAZORPAY_KEY_ID;
 
+// Store scroll position before locking
+let scrollPosition = 0;
+
+/**
+ * Lock body scroll - prevents scrolling behind modals
+ */
+function lockScroll(): void {
+    scrollPosition = window.pageYOffset;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollPosition}px`;
+    document.body.style.width = '100%';
+    document.documentElement.style.overflow = 'hidden';
+}
+
+/**
+ * Unlock body scroll - restores scrolling
+ */
+function unlockScroll(): void {
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.documentElement.style.overflow = '';
+    window.scrollTo(0, scrollPosition);
+}
+
 // Plan pricing configuration (amounts in paise - 1 INR = 100 paise)
 export const PRICING_PLANS = {
     pro: {
@@ -153,13 +180,13 @@ export function initiateRazorpayPayment({
         },
         handler: (response: RazorpaySuccessResponse) => {
             console.log('Payment successful:', response);
-            document.body.style.overflow = ''; // Restore scroll
+            unlockScroll();
             onSuccess(response);
         },
         modal: {
             ondismiss: () => {
                 console.log('Payment modal dismissed');
-                document.body.style.overflow = ''; // Restore scroll
+                unlockScroll();
                 onDismiss?.();
             },
             escape: true,
@@ -171,12 +198,12 @@ export function initiateRazorpayPayment({
         const razorpay = new window.Razorpay(options);
 
         razorpay.on('payment.failed', () => {
-            document.body.style.overflow = ''; // Restore scroll
+            unlockScroll();
             onFailure('Payment failed. Please try again.');
         });
 
         // Lock scroll when modal opens
-        document.body.style.overflow = 'hidden';
+        lockScroll();
         razorpay.open();
     } catch (error) {
         console.error('Razorpay initialization error:', error);
@@ -251,13 +278,13 @@ export function initiateCreditPackPayment({
         },
         handler: (response: RazorpaySuccessResponse) => {
             console.log('Credit pack payment successful:', response);
-            document.body.style.overflow = ''; // Restore scroll
+            unlockScroll();
             onSuccess(response, pack.credits);
         },
         modal: {
             ondismiss: () => {
                 console.log('Credit pack payment modal dismissed');
-                document.body.style.overflow = ''; // Restore scroll
+                unlockScroll();
                 onDismiss?.();
             },
             escape: true,
@@ -269,12 +296,12 @@ export function initiateCreditPackPayment({
         const razorpay = new window.Razorpay(options);
 
         razorpay.on('payment.failed', () => {
-            document.body.style.overflow = ''; // Restore scroll
+            unlockScroll();
             onFailure('Payment failed. Please try again.');
         });
 
         // Lock scroll when modal opens
-        document.body.style.overflow = 'hidden';
+        lockScroll();
         razorpay.open();
     } catch (error) {
         console.error('Razorpay initialization error:', error);
