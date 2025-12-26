@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Upload, Wand2, Sparkles, Image as ImageIcon, Download, Heart, Trash2, X, Loader2, Check, RotateCcw, ChevronDown, ChevronUp, GripVertical, RefreshCw, User, Zap } from 'lucide-react';
+import { Upload, Wand2, Sparkles, Image as ImageIcon, Download, Heart, Trash2, X, Loader2, Check, RotateCcw, ChevronDown, ChevronUp, GripVertical, RefreshCw, User, Zap, Coins } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateImageWithGemini, getGeminiApiKey } from '../utils/gemini-api';
 import { generateImage, checkBackendHealth } from '../utils/backend-api';
@@ -9,6 +9,7 @@ import { ColorPicker, ColorState } from './ColorPicker';
 import { supabase } from '../utils/supabase';
 import { GenerationProgress } from './ui/GenerationProgress';
 import BlockLoader from './ui/block-loader';
+import { useCredits } from '../hooks/useCredits';
 
 type TabType = 'fashion' | 'jewellery' | 'flatlay';
 type GenerationStep = 'uploading' | 'prompt' | 'generating' | 'saving' | null;
@@ -30,6 +31,7 @@ interface GeneratedImage {
 }
 
 export function GeneratorHub() {
+  const credits = useCredits();
   const [activeTab, setActiveTab] = useState<TabType>('fashion');
 
   // Clear template when switching tabs
@@ -257,6 +259,21 @@ export function GeneratorHub() {
       return;
     }
 
+    // Check if user has credits available
+    if (!credits.hasCredits) {
+      toast.error('No credits remaining', {
+        description: credits.planTier === 'free'
+          ? 'Upgrade to Pro for more generations'
+          : 'Purchase additional credits from Billing page',
+        action: {
+          label: credits.planTier === 'free' ? 'Upgrade' : 'Buy Credits',
+          onClick: () => document.getElementById('billing-tab-trigger')?.click()
+        }
+      });
+      return;
+    }
+
+
     setIsGenerating(true);
     setGenerationError(null);
     setGeneratedPrompt('');
@@ -380,6 +397,12 @@ export function GeneratorHub() {
       setSelectedResult(newImage); // Auto-select the new image
       setIsGenerating(false);
       setGenerationStep(null);
+
+      // Deduct 1 credit for successful generation
+      const creditUsed = await credits.useCredit();
+      if (creditUsed) {
+        console.log('✅ 1 credit deducted. Remaining:', credits.creditsRemaining - 1);
+      }
 
       // Save to Supabase Storage and Database
       try {
