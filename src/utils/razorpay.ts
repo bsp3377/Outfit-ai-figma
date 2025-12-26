@@ -23,6 +23,27 @@ export const PRICING_PLANS = {
     },
 } as const;
 
+// Credit pack pricing (amounts in paise)
+export const CREDIT_PACKS = {
+    'pack-10': {
+        id: 'pack-10',
+        name: '10 Credits',
+        credits: 10,
+        amount: 10000, // ₹100 in paise
+        currency: 'INR',
+        pricePerCredit: 10,
+    },
+    'pack-25': {
+        id: 'pack-25',
+        name: '25 Credits',
+        credits: 25,
+        amount: 20000, // ₹200 in paise
+        currency: 'INR',
+        pricePerCredit: 8,
+        popular: true,
+    },
+} as const;
+
 // TypeScript type definitions for Razorpay
 declare global {
     interface Window {
@@ -163,4 +184,90 @@ export function initiateRazorpayPayment({
  */
 export function formatAmount(amountInPaise: number): string {
     return `₹${(amountInPaise / 100).toLocaleString('en-IN')}`;
+}
+
+/**
+ * Initialize Razorpay payment for credit pack purchase
+ */
+export function initiateCreditPackPayment({
+    packId,
+    userEmail,
+    userName,
+    userPhone,
+    onSuccess,
+    onFailure,
+    onDismiss,
+}: {
+    packId: keyof typeof CREDIT_PACKS;
+    userEmail?: string;
+    userName?: string;
+    userPhone?: string;
+    onSuccess: (response: RazorpaySuccessResponse, credits: number) => void;
+    onFailure: (error: string) => void;
+    onDismiss?: () => void;
+}): void {
+    // Check if Razorpay key is configured
+    if (!isRazorpayConfigured) {
+        onFailure('Razorpay is not configured. Please add VITE_RAZORPAY_KEY_ID to your environment.');
+        return;
+    }
+
+    // Check if Razorpay script is loaded
+    if (typeof window.Razorpay === 'undefined') {
+        onFailure('Razorpay SDK not loaded. Please refresh the page and try again.');
+        return;
+    }
+
+    const pack = CREDIT_PACKS[packId];
+    if (!pack) {
+        onFailure('Invalid credit pack selected.');
+        return;
+    }
+
+    const options: RazorpayOptions = {
+        key: RAZORPAY_KEY_ID,
+        amount: pack.amount,
+        currency: pack.currency,
+        name: 'Outfit AI Studio',
+        description: `${pack.name} - Extra Generation Credits`,
+        image: '/favicon.ico',
+        prefill: {
+            name: userName || '',
+            email: userEmail || '',
+            contact: userPhone || '',
+        },
+        notes: {
+            pack_id: pack.id,
+            credits: String(pack.credits),
+            type: 'credit_pack',
+        },
+        theme: {
+            color: '#9333ea',
+        },
+        handler: (response: RazorpaySuccessResponse) => {
+            console.log('Credit pack payment successful:', response);
+            onSuccess(response, pack.credits);
+        },
+        modal: {
+            ondismiss: () => {
+                console.log('Credit pack payment modal dismissed');
+                onDismiss?.();
+            },
+            escape: true,
+            animation: true,
+        },
+    };
+
+    try {
+        const razorpay = new window.Razorpay(options);
+
+        razorpay.on('payment.failed', () => {
+            onFailure('Payment failed. Please try again.');
+        });
+
+        razorpay.open();
+    } catch (error) {
+        console.error('Razorpay initialization error:', error);
+        onFailure('Failed to initialize payment. Please try again.');
+    }
 }

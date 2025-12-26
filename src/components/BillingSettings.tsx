@@ -1,15 +1,60 @@
-import { CreditCard, Coins, Download, Calendar, Check } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { useState, useEffect } from 'react';
+import { CreditCard, Coins, Download, Calendar, Check, Loader2, Lock } from 'lucide-react';
+import { toast } from 'sonner';
+import { useCredits } from '../hooks/useCredits';
+import { initiateCreditPackPayment, initiateRazorpayPayment, isRazorpayConfigured, CREDIT_PACKS } from '../utils/razorpay';
+import { supabase } from '../utils/supabase';
+
+interface Transaction {
+  id: string;
+  date: Date;
+  description: string;
+  amount: string;
+  credits: number;
+}
 
 export function BillingSettings() {
-  const currentPlan = {
-    name: 'Pro',
-    price: '₹999',
-    credits: 100,
-    creditsUsed: 13,
-    creditsRemaining: 87,
-    renewalDate: new Date(2025, 0, 15),
-  };
+  const credits = useCredits();
+  const [isPaymentLoading, setIsPaymentLoading] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [userEmail, setUserEmail] = useState<string>('');
+
+  // Fetch user email for Razorpay prefill
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Fetch transaction history
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('user_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (!error && data) {
+        setTransactions(data.map((t: any) => ({
+          id: t.id,
+          date: new Date(t.created_at),
+          description: t.description,
+          amount: t.amount_display,
+          credits: t.credits_added,
+        })));
+      }
+    };
+    fetchTransactions();
+  }, [credits.creditsTotal]);
 
   const plans = [
     {
@@ -39,13 +84,13 @@ export function BillingSettings() {
 
   const creditPacks = [
     {
-      id: 'pack-10',
+      id: 'pack-10' as const,
       credits: 10,
       price: '₹100',
       pricePerCredit: '₹10',
     },
     {
-      id: 'pack-25',
+      id: 'pack-25' as const,
       credits: 25,
       price: '₹200',
       pricePerCredit: '₹8',
@@ -53,15 +98,77 @@ export function BillingSettings() {
     },
   ];
 
-  const transactions = [
-    { id: '1', date: new Date(2024, 11, 15), description: 'Pro Plan Purchase', amount: '₹999', credits: 100 },
-    { id: '2', date: new Date(2024, 10, 15), description: 'Pro Plan Purchase', amount: '₹999', credits: 100 },
-    { id: '3', date: new Date(2024, 9, 15), description: 'Free Trial', amount: '₹0', credits: 10 },
-  ];
-
   const handleUpgrade = (planId: string) => {
-    toast.success('Redirecting to payment...', {
-      description: 'You will be redirected to secure payment page',
+    if (planId === 'pro') {
+      if (!isRazorpayConfigured) {
+        toast.error('Payment gateway not configured');
+        return;
+      }
+
+      setIsPaymentLoading('pro');
+
+      initiateRazorpayPayment({
+        planId: 'pro',
+        userEmail,
+        onSuccess: async (response) => {
+          // Upgrade user to Pro
+          const success = await credits.upgradeToPro();
+          if (success) {
+            await credits.logTransaction('subscription', '₹999', 100, 'Pro Plan Subscription');
+            toast.success('Welcome to Pro! Your subscription is active.', {
+              description: `Payment ID: ${response.razorpay_payment_id}`,
+            });
+          }
+          setIsPaymentLoading(null);
+        },
+        onFailure: (error) => {
+          toast.error('Payment failed', { description: error });
+          setIsPaymentLoading(null);
+        },
+        onDismiss: () => setIsPaymentLoading(null),
+      });
+    } else if (planId === 'corporate') {
+      window.location.href = 'mailto:support@outfitai.studio?subject=Corporate%20Plan%20Inquiry';
+    }
+  };
+
+  const handleBuyCredits = (packId: 'pack-10' | 'pack-25') => {
+    if (!credits.canPurchaseCredits) {
+      toast.error('Upgrade to Pro to purchase extra credits');
+      return;
+    }
+
+    if (!isRazorpayConfigured) {
+      toast.error('Payment gateway not configured');
+      return;
+    }
+
+    setIsPaymentLoading(packId);
+
+    initiateCreditPackPayment({
+      packId,
+      userEmail,
+      onSuccess: async (response, creditsToAdd) => {
+        const success = await credits.addCredits(creditsToAdd);
+        if (success) {
+          const pack = CREDIT_PACKS[packId];
+          await credits.logTransaction(
+            'credit_pack',
+            `₹${pack.amount / 100}`,
+            creditsToAdd,
+            `${creditsToAdd} Credits Pack`
+          );
+          toast.success(`${creditsToAdd} credits added to your account!`, {
+            description: `Payment ID: ${response.razorpay_payment_id}`,
+          });
+        }
+        setIsPaymentLoading(null);
+      },
+      onFailure: (error) => {
+        toast.error('Payment failed', { description: error });
+        setIsPaymentLoading(null);
+      },
+      onDismiss: () => setIsPaymentLoading(null),
     });
   };
 
@@ -74,16 +181,19 @@ export function BillingSettings() {
       {/* Current Plan */}
       <div>
         <h1 className="text-2xl sm:text-3xl mb-6">Billing & Credits</h1>
-        
-        <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
+
+        <div className={`rounded-2xl p-6 text-white ${credits.planTier === 'pro'
+          ? 'bg-gradient-to-br from-purple-600 to-pink-600'
+          : 'bg-gradient-to-br from-gray-600 to-gray-700'
+          }`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
             <div>
-              <p className="text-sm text-purple-100 mb-1">Current Plan</p>
-              <h2 className="text-2xl">{currentPlan.name}</h2>
+              <p className="text-sm opacity-80 mb-1">Current Plan</p>
+              <h2 className="text-2xl capitalize">{credits.planTier}</h2>
             </div>
             <div className="mt-4 sm:mt-0">
-              <p className="text-3xl">{currentPlan.price}</p>
-              <p className="text-sm text-purple-100">per month</p>
+              <p className="text-3xl">{credits.planTier === 'pro' ? '₹999' : '₹0'}</p>
+              <p className="text-sm opacity-80">{credits.planTier === 'pro' ? 'per month' : 'Free tier'}</p>
             </div>
           </div>
 
@@ -93,26 +203,30 @@ export function BillingSettings() {
                 <Coins className="w-5 h-5" />
                 <p className="text-sm">Credits Remaining</p>
               </div>
-              <p className="text-2xl">{currentPlan.creditsRemaining}</p>
+              <p className="text-2xl">{credits.creditsRemaining}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-5 h-5" />
-                <p className="text-sm">Renewal Date</p>
+                <p className="text-sm">{credits.planTier === 'pro' ? 'Renewal Date' : 'Plan Type'}</p>
               </div>
-              <p className="text-lg">{currentPlan.renewalDate.toLocaleDateString()}</p>
+              <p className="text-lg">
+                {credits.renewalDate
+                  ? credits.renewalDate.toLocaleDateString()
+                  : credits.planTier === 'free' ? 'One-time credits' : 'N/A'}
+              </p>
             </div>
           </div>
 
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
             <div className="flex items-center justify-between text-sm mb-2">
-              <span>Usage: {currentPlan.creditsUsed} / {currentPlan.credits} credits</span>
-              <span>{Math.round((currentPlan.creditsUsed / currentPlan.credits) * 100)}%</span>
+              <span>Usage: {credits.creditsUsed} / {credits.creditsTotal} credits</span>
+              <span>{credits.creditsTotal > 0 ? Math.round((credits.creditsUsed / credits.creditsTotal) * 100) : 0}%</span>
             </div>
             <div className="w-full bg-white/20 rounded-full h-2">
               <div
                 className="bg-white rounded-full h-2 transition-all"
-                style={{ width: `${(currentPlan.creditsUsed / currentPlan.credits) * 100}%` }}
+                style={{ width: `${credits.creditsTotal > 0 ? (credits.creditsUsed / credits.creditsTotal) * 100 : 0}%` }}
               ></div>
             </div>
           </div>
@@ -130,11 +244,10 @@ export function BillingSettings() {
           {plans.map(plan => (
             <div
               key={plan.id}
-              className={`relative bg-white dark:bg-gray-900 border rounded-xl p-6 transition-all ${
-                plan.popular
-                  ? 'border-purple-600 dark:border-purple-600 shadow-xl'
-                  : 'border-gray-200 dark:border-gray-800 hover:border-purple-600 dark:hover:border-purple-600'
-              }`}
+              className={`relative bg-white dark:bg-gray-900 border rounded-xl p-6 transition-all ${plan.popular
+                ? 'border-purple-600 dark:border-purple-600 shadow-xl'
+                : 'border-gray-200 dark:border-gray-800 hover:border-purple-600 dark:hover:border-purple-600'
+                }`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs px-3 py-1 rounded-full">
@@ -163,38 +276,49 @@ export function BillingSettings() {
 
               <button
                 onClick={() => handleUpgrade(plan.id)}
-                disabled={plan.id === 'pro'}
-                className={`w-full py-3 rounded-lg transition-all ${
-                  plan.id === 'pro'
+                disabled={plan.id === credits.planTier || isPaymentLoading === 'pro'}
+                className={`w-full py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${plan.id === credits.planTier
                     ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg'
-                }`}
+                    : 'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg disabled:opacity-70'
+                  }`}
               >
-                {plan.id === 'pro' ? 'Current Plan' : plan.isContactPlan ? 'Contact Us' : 'Select Plan'}
+                {isPaymentLoading === 'pro' && plan.id === 'pro' && <Loader2 className="w-4 h-4 animate-spin" />}
+                {plan.id === credits.planTier ? 'Current Plan' : plan.isContactPlan ? 'Contact Us' : isPaymentLoading === 'pro' && plan.id === 'pro' ? 'Processing...' : 'Subscribe'}
               </button>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Credit Packs */}
+      {/* Credit Packs - Only for Pro subscribers */}
       <div>
-        <h2 className="text-xl sm:text-2xl mb-4">Credit Packs</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-xl sm:text-2xl">Add More Credits</h2>
+          {!credits.canPurchaseCredits && (
+            <span className="flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-gray-600 dark:text-gray-400">
+              <Lock className="w-3 h-3" />
+              Pro Only
+            </span>
+          )}
+        </div>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Add more credits to your account
+          {credits.canPurchaseCredits
+            ? 'Purchase additional credits for your account'
+            : 'Upgrade to Pro to purchase extra generation credits'}
         </p>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {creditPacks.map(pack => (
             <div
               key={pack.id}
-              className={`relative bg-white dark:bg-gray-900 border rounded-xl p-6 transition-all ${
-                pack.popular
+              className={`relative bg-white dark:bg-gray-900 border rounded-xl p-6 transition-all ${!credits.canPurchaseCredits
+                ? 'opacity-60 border-gray-200 dark:border-gray-800'
+                : pack.popular
                   ? 'border-purple-600 dark:border-purple-600 shadow-xl'
                   : 'border-gray-200 dark:border-gray-800 hover:border-purple-600 dark:hover:border-purple-600'
-              }`}
+                }`}
             >
-              {pack.popular && (
+              {pack.popular && credits.canPurchaseCredits && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs px-3 py-1 rounded-full">
                   Most Popular
                 </div>
@@ -211,12 +335,15 @@ export function BillingSettings() {
               </div>
 
               <button
-                onClick={() => handleUpgrade(pack.id)}
-                className={`w-full py-3 rounded-lg transition-all ${
-                  'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg'
-                }`}
+                onClick={() => handleBuyCredits(pack.id)}
+                disabled={!credits.canPurchaseCredits || isPaymentLoading === pack.id}
+                className={`w-full py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${!credits.canPurchaseCredits
+                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg disabled:opacity-70'
+                  }`}
               >
-                Add Credits
+                {isPaymentLoading === pack.id && <Loader2 className="w-4 h-4 animate-spin" />}
+                {!credits.canPurchaseCredits ? 'Upgrade to Pro' : isPaymentLoading === pack.id ? 'Processing...' : 'Add Credits'}
               </button>
             </div>
           ))}
@@ -226,7 +353,7 @@ export function BillingSettings() {
       {/* Payment Method */}
       <div>
         <h2 className="text-xl sm:text-2xl mb-4">Payment Method</h2>
-        
+
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -246,7 +373,7 @@ export function BillingSettings() {
       {/* Transaction History */}
       <div>
         <h2 className="text-xl sm:text-2xl mb-4">Transaction History</h2>
-        
+
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
