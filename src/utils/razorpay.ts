@@ -16,25 +16,24 @@ let scrollPosition = 0;
 
 /**
  * Lock body scroll - prevents scrolling behind modals
+ * Scrolls to top first so Razorpay modal is visible
  */
 function lockScroll(): void {
     scrollPosition = window.pageYOffset;
+    // Scroll to top so Razorpay modal is visible
+    window.scrollTo(0, 0);
+    // Lock scrolling
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollPosition}px`;
-    document.body.style.width = '100%';
     document.documentElement.style.overflow = 'hidden';
 }
 
 /**
- * Unlock body scroll - restores scrolling
+ * Unlock body scroll - restores scrolling and position
  */
 function unlockScroll(): void {
     document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
     document.documentElement.style.overflow = '';
+    // Restore scroll position
     window.scrollTo(0, scrollPosition);
 }
 
