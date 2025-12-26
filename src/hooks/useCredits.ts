@@ -5,7 +5,7 @@
  * Fetches and updates credits from Supabase user_credits table.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 export type PlanTier = 'free' | 'pro' | 'corporate';
@@ -42,6 +42,9 @@ export function useCredits() {
     });
 
     const [userId, setUserId] = useState<string | null>(null);
+
+    // Track when this hook instance is doing an update to avoid refetch race condition
+    const isUpdatingRef = useRef(false);
 
     // Fetch user credits from Supabase
     const fetchCredits = useCallback(async () => {
@@ -149,8 +152,11 @@ export function useCredits() {
                 creditsRemaining: prev.creditsTotal - newCreditsUsed,
             }));
 
-            // Dispatch event to notify other useCredits instances
+            // Set flag to skip refetch for this instance, then dispatch event
+            isUpdatingRef.current = true;
             window.dispatchEvent(new Event('credits-updated'));
+            // Clear flag after a short delay
+            setTimeout(() => { isUpdatingRef.current = false; }, 500);
 
             return true;
         } catch (err) {
@@ -185,8 +191,10 @@ export function useCredits() {
                 creditsRemaining: newCreditsTotal - prev.creditsUsed,
             }));
 
-            // Dispatch event to notify other useCredits instances
+            // Set flag to skip refetch for this instance, then dispatch event
+            isUpdatingRef.current = true;
             window.dispatchEvent(new Event('credits-updated'));
+            setTimeout(() => { isUpdatingRef.current = false; }, 500);
 
             return true;
         } catch (err) {
@@ -373,6 +381,8 @@ export function useCredits() {
     // Listen for credits-updated event from other hook instances
     useEffect(() => {
         const handleCreditsUpdated = () => {
+            // Skip if this instance just dispatched the event
+            if (isUpdatingRef.current) return;
             fetchCredits();
         };
 
