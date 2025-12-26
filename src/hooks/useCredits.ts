@@ -232,7 +232,7 @@ export function useCredits() {
 
     // Log transaction in database
     const logTransaction = useCallback(async (
-        transactionType: 'subscription' | 'credit_pack' | 'refund',
+        transactionType: 'subscription' | 'credit_pack' | 'promo_code' | 'refund',
         amountDisplay: string,
         creditsAdded: number,
         description: string
@@ -259,6 +259,81 @@ export function useCredits() {
             return false;
         }
     }, [userId]);
+
+    // Redeem a promo code
+    const redeemPromoCode = useCallback(async (code: string): Promise<{ success: boolean; message: string; credits?: number }> => {
+        if (!userId || !isSupabaseConfigured) {
+            return { success: false, message: 'Please sign in to redeem a code' };
+        }
+
+        const trimmedCode = code.trim().toUpperCase();
+        if (!trimmedCode) {
+            return { success: false, message: 'Please enter a promo code' };
+        }
+
+        try {
+            // Check if code exists
+            const { data: promoCode, error: fetchError } = await supabase
+                .from('promo_codes')
+                .select('*')
+                .eq('code', trimmedCode)
+                .single();
+
+            if (fetchError || !promoCode) {
+                return { success: false, message: 'Invalid promo code' };
+            }
+
+            // Check if already used
+            if (promoCode.is_used) {
+                return { success: false, message: 'This code has already been used' };
+            }
+
+            // Check if expired
+            if (promoCode.expires_at && new Date(promoCode.expires_at) < new Date()) {
+                return { success: false, message: 'This code has expired' };
+            }
+
+            // Mark code as used
+            const { error: updateError } = await supabase
+                .from('promo_codes')
+                .update({
+                    is_used: true,
+                    used_by: userId,
+                    used_at: new Date().toISOString(),
+                })
+                .eq('id', promoCode.id);
+
+            if (updateError) {
+                console.error('Error updating promo code:', updateError);
+                return { success: false, message: 'Failed to apply code. Please try again.' };
+            }
+
+            // Add credits to user
+            const creditsToAdd = promoCode.credits || 50;
+            const addSuccess = await addCredits(creditsToAdd);
+
+            if (!addSuccess) {
+                return { success: false, message: 'Failed to add credits. Please contact support.' };
+            }
+
+            // Log transaction
+            await logTransaction(
+                'promo_code',
+                'Free',
+                creditsToAdd,
+                `Promo Code: ${trimmedCode}`
+            );
+
+            return {
+                success: true,
+                message: `Successfully added ${creditsToAdd} credits!`,
+                credits: creditsToAdd
+            };
+        } catch (err) {
+            console.error('Error redeeming promo code:', err);
+            return { success: false, message: 'An error occurred. Please try again.' };
+        }
+    }, [userId, addCredits, logTransaction]);
 
     // Check if user can purchase extra credits (Pro only)
     const canPurchaseCredits = credits.planTier === 'pro' || credits.planTier === 'corporate';
@@ -288,6 +363,7 @@ export function useCredits() {
         addCredits,
         upgradeToPro,
         logTransaction,
+        redeemPromoCode,
         refetch: fetchCredits,
     };
 }

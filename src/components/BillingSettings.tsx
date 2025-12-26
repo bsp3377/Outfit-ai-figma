@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Coins, Download, Calendar, Check, Loader2, Lock } from 'lucide-react';
+import { Coins, Download, Calendar, Check, Loader2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCredits } from '../hooks/useCredits';
 import { initiateCreditPackPayment, initiateRazorpayPayment, isRazorpayConfigured, CREDIT_PACKS } from '../utils/razorpay';
@@ -18,6 +18,8 @@ export function BillingSettings() {
   const [isPaymentLoading, setIsPaymentLoading] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [promoCode, setPromoCode] = useState<string>('');
+  const [isRedeemingCode, setIsRedeemingCode] = useState<boolean>(false);
 
   // Fetch user email for Razorpay prefill
   useEffect(() => {
@@ -188,6 +190,21 @@ export function BillingSettings() {
 
   const downloadInvoice = (id: string) => {
     toast.success('Invoice downloaded');
+  };
+
+  const handleRedeemCode = async () => {
+    if (!promoCode.trim()) return;
+
+    setIsRedeemingCode(true);
+    const result = await credits.redeemPromoCode(promoCode);
+    setIsRedeemingCode(false);
+
+    if (result.success) {
+      toast.success(result.message);
+      setPromoCode(''); // Clear input on success
+    } else {
+      toast.error(result.message);
+    }
   };
 
   return (
@@ -364,21 +381,30 @@ export function BillingSettings() {
         </div>
       </div>
 
-      {/* Payment Method */}
+      {/* Promo Code */}
       <div>
-        <h2 className="text-xl sm:text-2xl mb-4">Payment Method</h2>
+        <h2 className="text-xl sm:text-2xl mb-4">Redeem Promo Code</h2>
 
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-              <CreditCard className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="mb-1">•••• •••• •••• 4242</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Expires 12/25</p>
-            </div>
-            <button className="px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all text-sm">
-              Update
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Have a promo code? Enter it below to get free credits.
+          </p>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              placeholder="Enter code (e.g., LAUNCH50)"
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all uppercase"
+              disabled={isRedeemingCode}
+            />
+            <button
+              onClick={handleRedeemCode}
+              disabled={!promoCode.trim() || isRedeemingCode}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isRedeemingCode && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isRedeemingCode ? 'Applying...' : 'Apply Code'}
             </button>
           </div>
         </div>
