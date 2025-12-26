@@ -149,6 +149,9 @@ export function useCredits() {
                 creditsRemaining: prev.creditsTotal - newCreditsUsed,
             }));
 
+            // Dispatch event to notify other useCredits instances
+            window.dispatchEvent(new Event('credits-updated'));
+
             return true;
         } catch (err) {
             console.error('Error using credit:', err);
@@ -181,6 +184,9 @@ export function useCredits() {
                 creditsTotal: newCreditsTotal,
                 creditsRemaining: newCreditsTotal - prev.creditsUsed,
             }));
+
+            // Dispatch event to notify other useCredits instances
+            window.dispatchEvent(new Event('credits-updated'));
 
             return true;
         } catch (err) {
@@ -362,6 +368,16 @@ export function useCredits() {
         });
 
         return () => subscription.unsubscribe();
+    }, [fetchCredits]);
+
+    // Listen for credits-updated event from other hook instances
+    useEffect(() => {
+        const handleCreditsUpdated = () => {
+            fetchCredits();
+        };
+
+        window.addEventListener('credits-updated', handleCreditsUpdated);
+        return () => window.removeEventListener('credits-updated', handleCreditsUpdated);
     }, [fetchCredits]);
 
     return {
