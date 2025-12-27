@@ -350,3 +350,195 @@ export function useTermsAndConditions() {
         refund,
     };
 }
+
+/**
+ * Interface for testimonial
+ */
+interface Testimonial {
+    id: string;
+    author_name: string;
+    author_title: string | null;
+    author_company: string | null;
+    content: string;
+    rating: number;
+    avatar_url: string | null;
+    display_order: number;
+}
+
+/**
+ * Hook for fetching testimonials
+ */
+export function useTestimonials() {
+    const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchTestimonials() {
+            if (!isSupabaseConfigured) {
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                const { data, error: fetchError } = await supabase
+                    .from('testimonials')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('display_order', { ascending: true });
+
+                if (fetchError) {
+                    console.error('Error fetching testimonials:', fetchError);
+                    setError(fetchError.message);
+                } else if (data) {
+                    setTestimonials(data as Testimonial[]);
+                }
+            } catch (err) {
+                console.error('Failed to fetch testimonials:', err);
+                setError('Failed to load testimonials');
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchTestimonials();
+    }, []);
+
+    // Default testimonials as fallback
+    const defaultTestimonials: Testimonial[] = [
+        {
+            id: '1',
+            author_name: 'Sarah Chen',
+            author_title: 'Head of E-commerce',
+            author_company: 'StyleCo',
+            content: 'Cut our product photography costs by 80%. The AI models look incredibly realistic and our conversion rate actually improved.',
+            rating: 5,
+            avatar_url: null,
+            display_order: 1,
+        },
+        {
+            id: '2',
+            author_name: 'Marcus Rodriguez',
+            author_title: 'Founder',
+            author_company: 'LuxeGems',
+            content: 'Game changer for our jewelry line. The close-ups capture details our photographer struggled with. Export quality is print-ready.',
+            rating: 5,
+            avatar_url: null,
+            display_order: 2,
+        },
+    ];
+
+    return {
+        testimonials: testimonials.length > 0 ? testimonials : defaultTestimonials,
+        isLoading,
+        error,
+    };
+}
+
+/**
+ * Interface for partner logo
+ */
+interface PartnerLogo {
+    id: string;
+    name: string;
+    logo_url: string | null;
+    website_url: string | null;
+    display_order: number;
+}
+
+/**
+ * Hook for fetching partner logos
+ */
+export function usePartnerLogos() {
+    const [logos, setLogos] = useState<PartnerLogo[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchLogos() {
+            if (!isSupabaseConfigured) {
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                const { data, error: fetchError } = await supabase
+                    .from('partner_logos')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('display_order', { ascending: true });
+
+                if (fetchError) {
+                    console.error('Error fetching partner logos:', fetchError);
+                    setError(fetchError.message);
+                } else if (data) {
+                    setLogos(data as PartnerLogo[]);
+                }
+            } catch (err) {
+                console.error('Failed to fetch partner logos:', err);
+                setError('Failed to load partner logos');
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchLogos();
+    }, []);
+
+    return {
+        logos,
+        isLoading,
+        error,
+    };
+}
+
+/**
+ * Hook for steps section content
+ */
+export function useStepsContent() {
+    const { content, isLoading, getText } = useSiteContent('steps');
+
+    const defaults = {
+        step1_title: 'Upload your product',
+        step1_desc: 'Drop your product image or paste a URL',
+        step2_title: 'Choose your style',
+        step2_desc: 'Select model, flatlay, or close-up preset',
+        step3_title: 'Generate & download',
+        step3_desc: 'Get your high-res PNG in seconds',
+    };
+
+    return {
+        isLoading,
+        step1Title: getText('step1_title', defaults.step1_title),
+        step1Desc: getText('step1_desc', defaults.step1_desc),
+        step2Title: getText('step2_title', defaults.step2_title),
+        step2Desc: getText('step2_desc', defaults.step2_desc),
+        step3Title: getText('step3_title', defaults.step3_title),
+        step3Desc: getText('step3_desc', defaults.step3_desc),
+    };
+}
+
+/**
+ * Hook for footer content
+ */
+export function useFooterContent() {
+    const { content, isLoading, getText } = useSiteContent('footer');
+
+    return {
+        isLoading,
+        copyright: getText('copyright', '© 2024 Outfit AI. All rights reserved.'),
+    };
+}
+
+/**
+ * Hook for social proof section
+ */
+export function useSocialProofContent() {
+    const { content, isLoading, getText } = useSiteContent('social_proof');
+
+    return {
+        isLoading,
+        brandsTagline: getText('brands_tagline', 'Trusted by leading e-commerce brands'),
+    };
+}
+

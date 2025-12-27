@@ -23,7 +23,7 @@ import { ImageWithFallback } from "./components/figma/ImageWithFallback";
 import { Toaster } from "sonner";
 import logoImage from "figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png";
 import { supabase } from "./utils/supabase";
-import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent, useTermsAndConditions } from "./utils/useSiteContent";
+import { useBeforeAfterImages, useHeroImages, useFeatureImages, useLogoImage, useLandingContent, useTermsAndConditions, useTestimonials, usePartnerLogos, useStepsContent, useFooterContent, useSocialProofContent } from "./utils/useSiteContent";
 import { PageLoader } from "./components/ui/PageLoader";
 // MouseTrailBackground removed - cursor interaction disabled
 import { AnimatedShinyText } from "./components/ui/animated-shiny-text";
@@ -65,6 +65,11 @@ export default function App() {
   const logoData = useLogoImage();
   const landingContent = useLandingContent();
   const legalDocs = useTermsAndConditions();
+  const { testimonials } = useTestimonials();
+  const { logos: partnerLogos } = usePartnerLogos();
+  const stepsContent = useStepsContent();
+  const footerContent = useFooterContent();
+  const socialProofContent = useSocialProofContent();
 
   console.log('Legal Docs Hook State:', legalDocs);
   console.log('Supabase Configured:', !!import.meta.env.VITE_SUPABASE_URL);
@@ -344,10 +349,10 @@ export default function App() {
                             Step 1
                           </div>
                           <h3 className="mb-2">
-                            Upload your product
+                            {stepsContent.step1Title}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400">
-                            Drop your product image or paste a URL
+                            {stepsContent.step1Desc}
                           </p>
                         </div>
                       </div>
@@ -361,11 +366,10 @@ export default function App() {
                             Step 2
                           </div>
                           <h3 className="mb-2">
-                            Choose your style
+                            {stepsContent.step2Title}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400">
-                            Select model, flatlay, or close-up
-                            preset
+                            {stepsContent.step2Desc}
                           </p>
                         </div>
                       </div>
@@ -379,10 +383,10 @@ export default function App() {
                             Step 3
                           </div>
                           <h3 className="mb-2">
-                            Generate & download
+                            {stepsContent.step3Title}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400">
-                            Get your high-res PNG in seconds
+                            {stepsContent.step3Desc}
                           </p>
                         </div>
                       </div>
@@ -657,72 +661,58 @@ export default function App() {
                     {/* Logo Strip */}
                     <div className="mb-12">
                       <p className="text-center text-sm text-gray-500 dark:text-gray-500 mb-6">
-                        Trusted by leading e-commerce brands
+                        {socialProofContent.brandsTagline}
                       </p>
                       <div className="flex flex-wrap justify-center items-center gap-8 sm:gap-12 opacity-40">
-                        <div className="h-8 w-24 bg-gray-400 dark:bg-gray-600 rounded"></div>
-                        <div className="h-8 w-28 bg-gray-400 dark:bg-gray-600 rounded"></div>
-                        <div className="h-8 w-20 bg-gray-400 dark:bg-gray-600 rounded"></div>
-                        <div className="h-8 w-32 bg-gray-400 dark:bg-gray-600 rounded"></div>
-                        <div className="h-8 w-24 bg-gray-400 dark:bg-gray-600 rounded"></div>
+                        {partnerLogos.length > 0 ? (
+                          partnerLogos.map((logo) => (
+                            <div key={logo.id} className="h-8 w-24 bg-gray-400 dark:bg-gray-600 rounded flex items-center justify-center">
+                              {logo.logo_url ? (
+                                <img src={logo.logo_url} alt={logo.name} className="h-full w-auto object-contain" />
+                              ) : (
+                                <span className="text-xs text-gray-600 dark:text-gray-400">{logo.name}</span>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <>
+                            <div className="h-8 w-24 bg-gray-400 dark:bg-gray-600 rounded"></div>
+                            <div className="h-8 w-28 bg-gray-400 dark:bg-gray-600 rounded"></div>
+                            <div className="h-8 w-20 bg-gray-400 dark:bg-gray-600 rounded"></div>
+                            <div className="h-8 w-32 bg-gray-400 dark:bg-gray-600 rounded"></div>
+                            <div className="h-8 w-24 bg-gray-400 dark:bg-gray-600 rounded"></div>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     {/* Testimonials */}
                     <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                      <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
-                        <div className="flex gap-1 mb-4">
-                          {[...Array(5)].map((_, i) => (
-                            <svg
-                              key={i}
-                              className="w-5 h-5 text-yellow-400"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          "Cut our product photography costs by
-                          80%. The AI models look incredibly
-                          realistic and our conversion rate
-                          actually improved."
-                        </p>
-                        <div>
-                          <div>Sarah Chen</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-500">
-                            Head of E-commerce, StyleCo
+                      {testimonials.map((testimonial) => (
+                        <div key={testimonial.id} className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
+                          <div className="flex gap-1 mb-4">
+                            {[...Array(testimonial.rating)].map((_, i) => (
+                              <svg
+                                key={i}
+                                className="w-5 h-5 text-yellow-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            "{testimonial.content}"
+                          </p>
+                          <div>
+                            <div>{testimonial.author_name}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-500">
+                              {testimonial.author_title}{testimonial.author_company ? `, ${testimonial.author_company}` : ''}
+                            </div>
                           </div>
                         </div>
-                      </div>
-
-                      <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
-                        <div className="flex gap-1 mb-4">
-                          {[...Array(5)].map((_, i) => (
-                            <svg
-                              key={i}
-                              className="w-5 h-5 text-yellow-400"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          "Game changer for our jewelry line. The
-                          close-ups capture details our
-                          photographer struggled with. Export
-                          quality is print-ready."
-                        </p>
-                        <div>
-                          <div>Marcus Rodriguez</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-500">
-                            Founder, LuxeGems
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </section>
