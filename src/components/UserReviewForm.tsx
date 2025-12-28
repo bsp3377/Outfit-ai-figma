@@ -14,6 +14,8 @@ export function UserReviewForm() {
     } | null>(null);
 
     const [formData, setFormData] = useState({
+        name: '',
+        company: '',
         content: '',
         rating: 5
     });
@@ -26,6 +28,12 @@ export function UserReviewForm() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+
+            // Pre-fill name from auth if not loaded
+            setFormData(prev => ({
+                ...prev,
+                name: user.user_metadata?.full_name || user.email?.split('@')[0] || ''
+            }));
 
             const { data, error } = await supabase
                 .from('testimonials')
@@ -41,6 +49,8 @@ export function UserReviewForm() {
                     status: data.is_featured ? 'published' : 'pending'
                 });
                 setFormData({
+                    name: data.author_name || user.user_metadata?.full_name || '',
+                    company: data.company_name || '',
                     content: data.content,
                     rating: data.rating
                 });
@@ -62,7 +72,8 @@ export function UserReviewForm() {
 
             const payload = {
                 user_id: user.id,
-                author_name: user.user_metadata?.full_name || 'User',
+                author_name: formData.name || user.user_metadata?.full_name || 'User',
+                company_name: formData.company,
                 content: formData.content,
                 rating: formData.rating,
                 is_active: true,
@@ -123,6 +134,29 @@ export function UserReviewForm() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm mb-2">Name (Optional)</label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                            placeholder="Your name"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm mb-2">Company (Optional)</label>
+                        <input
+                            type="text"
+                            value={formData.company}
+                            onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                            placeholder="Your company"
+                        />
+                    </div>
+                </div>
+
                 <div>
                     <label className="block text-sm mb-2">Rating</label>
                     <div className="flex gap-2">
