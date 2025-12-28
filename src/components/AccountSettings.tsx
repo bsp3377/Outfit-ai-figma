@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Mail, Lock, Moon, Sun, Globe, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { supabase } from '../utils/supabase';
+import { UserReviewForm } from './UserReviewForm';
 
 interface AccountSettingsProps {
   isDark: boolean;
@@ -198,6 +199,9 @@ export function AccountSettings({ isDark, onToggleDark, onLogout }: AccountSetti
           </button>
         </div>
       </div>
+
+      {/* User Review */}
+      <UserReviewForm />
 
       {/* Danger Zone */}
       <div className="bg-white dark:bg-gray-900 border border-red-200 dark:border-red-900/50 rounded-xl p-6">

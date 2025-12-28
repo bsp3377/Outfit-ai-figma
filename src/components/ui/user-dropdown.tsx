@@ -62,7 +62,7 @@ export const UserDropdown = ({
                 <DropdownMenuGroup>
                     <DropdownMenuItem
                         className="flex items-center gap-2 p-2 rounded-lg cursor-pointer text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/10 focus:text-red-600 dark:focus:text-red-400"
-                        onClick={() => onAction('logout')}
+                        onSelect={() => onAction('logout')}
                     >
                         <Icon icon="solar:logout-2-bold-duotone" className="w-5 h-5" />
                         <span className="font-medium text-sm">Log out</span>

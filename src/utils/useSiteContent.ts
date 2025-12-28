@@ -385,6 +385,7 @@ export function useTestimonials() {
                     .from('testimonials')
                     .select('*')
                     .eq('is_active', true)
+                    .eq('is_featured', true)
                     .order('display_order', { ascending: true });
 
                 if (fetchError) {
