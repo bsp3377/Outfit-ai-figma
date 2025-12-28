@@ -38,6 +38,7 @@ const Library = lazy(() => import("./components/Library").then(module => ({ defa
 const BillingSettings = lazy(() => import("./components/BillingSettings").then(module => ({ default: module.BillingSettings })));
 const AccountSettings = lazy(() => import("./components/AccountSettings").then(module => ({ default: module.AccountSettings })));
 const LegalPage = lazy(() => import("./components/LegalPage").then(module => ({ default: module.LegalPage })));
+const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
 
 import {
   Dialog,
@@ -55,7 +56,7 @@ export default function App() {
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authenticatedView, setAuthenticatedView] = useState<
-    "generate" | "library" | "billing" | "settings" | "account"
+    "generate" | "library" | "billing" | "settings" | "account" | "admin"
   >("generate");
 
   // Fetch dynamic before/after images from Supabase CMS
@@ -149,6 +150,8 @@ export default function App() {
                 onToggleDark={() => setIsDark(!isDark)}
                 onLogout={handleLogout}
               />
+            ) : authenticatedView === "admin" ? (
+              <AdminDashboard />
             ) : null}
           </AuthenticatedLayout>
         ) : (

@@ -11,17 +11,19 @@ import {
   Sun,
   Menu,
   X,
-  Coins
+  Coins,
+  Shield
 } from 'lucide-react';
 import logoImage from 'figma:asset/fa30442f6b440cc9bfcc8b76b43cb2346b823708.png';
 import { supabase } from '../utils/supabase';
 import { UserDropdown } from './ui/user-dropdown';
 import { useCredits } from '../hooks/useCredits';
+import { useAdmin } from '../hooks/useAdmin';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
-  currentView: 'generate' | 'library' | 'billing' | 'settings' | 'account';
-  onViewChange: (view: 'generate' | 'library' | 'billing' | 'settings' | 'account') => void;
+  currentView: 'generate' | 'library' | 'billing' | 'settings' | 'account' | 'admin';
+  onViewChange: (view: 'generate' | 'library' | 'billing' | 'settings' | 'account' | 'admin') => void;
   onLogout: () => void;
   isDark: boolean;
   onToggleDark: () => void;
@@ -40,6 +42,7 @@ export function AuthenticatedLayout({
   const [userData, setUserData] = useState({ name: '', email: '' });
   const [navVisible, setNavVisible] = useState(false);
   const credits = useCredits();
+  const { isAdmin } = useAdmin();
 
   // Scroll detection - show nav when scrolling, hide when idle
   useEffect(() => {
@@ -111,6 +114,7 @@ export function AuthenticatedLayout({
     { id: 'library' as const, label: 'Library', icon: ImageIcon },
     { id: 'billing' as const, label: 'Billing', icon: CreditCard },
     { id: 'settings' as const, label: 'Settings', icon: Settings },
+    ...(isAdmin ? [{ id: 'admin' as const, label: 'Admin', icon: Shield }] : []),
   ];
 
   const mobileNavItems = [
