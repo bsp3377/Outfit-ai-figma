@@ -1272,35 +1272,56 @@ export function GeneratorHub() {
         </div>
 
         {/* Detail Shots Upload Section */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-purple-200 dark:border-purple-800 p-4">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h3 className="text-sm font-medium">Detail Shots (Optional)</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
-                Upload close-ups of textures, logos, buttons, stitching
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                Detail Shots
+                <span className="text-xs font-normal text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">
+                  Strongly Recommended for Logos
+                </span>
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+                Upload close-ups for <strong>EXACT reproduction</strong>:
               </p>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1.5 space-y-0.5">
+                <div>📍 <strong>Logos</strong> (chest, sleeve, back) - <em>Critical for brand accuracy</em></div>
+                <div>🧵 <strong>Stitching</strong> & embroidery details</div>
+                <div>🔘 <strong>Buttons</strong> & hardware closeups</div>
+                <div>📐 <strong>Patterns</strong> & fabric textures</div>
+              </div>
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-500 font-medium">
               {detailFiles.length}/5
             </span>
           </div>
 
           {detailFiles.length === 0 ? (
-            <label className="block">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleDetailUpload}
-                className="hidden"
-              />
-              <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center cursor-pointer hover:border-purple-600 dark:hover:border-purple-600 transition-all">
-                <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Add detail reference images
+            <>
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleDetailUpload}
+                  className="hidden"
+                />
+                <div className="border border-dashed border-purple-300 dark:border-purple-700 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-all">
+                  <Upload className="w-6 h-6 mx-auto mb-2 text-purple-500" />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                    Add detail reference images
+                  </p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
+                    PNG, JPG or WEBP (max. 10MB per file)
+                  </p>
+                </div>
+              </label>
+              <div className="mt-3 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-[10px] text-blue-700 dark:text-blue-300 leading-relaxed">
+                  <strong>💡 Pro Tip:</strong> For logos, fill the frame with the logo, use good lighting, and ensure sharp focus. The AI will copy it exactly as shown!
                 </p>
               </div>
-            </label>
+            </>
           ) : (
             <div className="space-y-2">
               {/* Thumbnail grid for detail images */}
@@ -1331,8 +1352,8 @@ export function GeneratorHub() {
                     onChange={handleDetailUpload}
                     className="hidden"
                   />
-                  <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded p-2 text-center cursor-pointer hover:border-purple-600 dark:hover:border-purple-600 transition-all">
-                    <p className="text-xs text-gray-500">
+                  <div className="border border-dashed border-purple-300 dark:border-purple-700 rounded p-2 text-center cursor-pointer hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50/30 dark:hover:bg-purple-900/20 transition-all">
+                    <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
                       + Add more ({5 - detailFiles.length} remaining)
                     </p>
                   </div>

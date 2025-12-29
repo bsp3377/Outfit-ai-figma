@@ -77,9 +77,11 @@ function buildImagePrompt(params: ImageGenerationParams): string {
     colorInstructions = `with a ${styleText} gradient background fading from ${start} to ${end}`;
   }
 
-  // Logo instructions if logo is provided
+  // Logo instructions if logo is provided - distinguish between product logo and environmental logo
   const logoInstructions = logoImageBase64
-    ? `CRITICAL REQUIREMENT: You MUST include the brand logo (provided in the logo reference image) in the generated image. It is NOT optional. Place it ${formData.logoPlacement || 'on the background wall'} in a ${formData.logoFocus === 'subtle' ? 'tasteful, subtle manner' : 'clear, prominent position'}${formData.logoLocation ? ` at ${formData.logoLocation}` : ''}. The logo should look realistic, as if it's part of the physical environment (e.g., printed on signage, a wall decal, or prop branding).`
+    ? formData.logoPlacement === 'front'
+      ? `CRITICAL LOGO REQUIREMENT - PRODUCT INTEGRATION: The brand logo (provided in the logo reference image) is an integral part of the product design. It MUST appear ON the product/garment exactly as shown in the reference, not as a separate element. This is embroidered, printed, or sewn onto the fabric as part of the manufacturing. Match the exact logo design, size proportion, positioning, and style. For apparel: typically on chest, sleeve, back, or collar. The logo is part of the garment itself.${formData.logoFocus === 'focused' ? ' Ensure the logo is clearly visible and in sharp focus.' : ' The logo should be visible but naturally integrated into the overall composition.'}`
+      : `CRITICAL LOGO REQUIREMENT - ENVIRONMENTAL PLACEMENT: You MUST include the brand logo (provided in the logo reference image) in the generated image as an environmental element. Place it ${formData.logoPlacement === 'background' ? 'on the background wall/surface' : formData.logoPlacement}${formData.logoLocation ? ` at ${formData.logoLocation}` : ''}. The logo should look realistic, as if it's part of the physical environment (e.g., printed signage, wall decal, backdrop branding). ${formData.logoFocus === 'focused' ? 'Make it prominent and clearly visible.' : 'Integrate it subtly but recognizably into the scene.'}`
     : '';
 
   // Strict negative constraint to prevent lighting equipment from appearing
@@ -92,9 +94,17 @@ function buildImagePrompt(params: ImageGenerationParams): string {
     ? 'IMPORTANT: Use the style, composition, color palette, lighting, and overall aesthetic from the inspired template image as a strong reference. Match the visual mood, layout approach, and styling while featuring the product from the product reference image.'
     : '';
 
-  // Detail shots instructions
+  // Detail shots instructions - AUTHORITATIVE for exact reproduction
   const detailInstructions = detailImages && detailImages.length > 0
-    ? `CRITICAL DETAIL REQUIREMENT: Reference the detail shot images provided for accurate reproduction of specific textures, logos, button designs, fabric patterns, stitching, and other fine details. Ensure these details are clearly visible and accurately rendered in the final image.`
+    ? `CRITICAL DETAIL REQUIREMENT - EXACT REPRODUCTION MANDATORY: The ${detailImages.length} detail shot image(s) provided are AUTHORITATIVE REFERENCES that must be replicated with PIXEL-PERFECT accuracy. These are not suggestions - they are exact specifications. Pay special attention to:
+
+• LOGOS & BRAND MARKS: Reproduce the exact design, shape, typography, and appearance shown in detail shots. Do NOT approximate or create generic versions. The logo is a critical brand identifier that MUST match perfectly.
+• TEXTURES & FABRIC: Match the exact weave patterns, material texture, and surface characteristics.
+• BUTTONS & HARDWARE: Replicate exact button styles, count, placement, and finishing.
+• STITCHING & EMBROIDERY: Reproduce stitch patterns, thread colors, and embroidery designs exactly as shown.
+• PATTERNS & PRINTS: Match exact pattern repeats, colors, and design elements.
+
+When logos appear in detail shots, treat them as if you're copying a photograph - every line, curve, and element must be identical. The detail shots override any ambiguity from the main product images.`
     : '';
 
   if (tabType === 'fashion') {
@@ -316,15 +326,25 @@ export async function generateImageWithGemini(params: ImageGenerationParams): Pr
   }
 
   // Add detail images if provided (for texture, logo, button design references)
+  // These are AUTHORITATIVE - they take precedence over product images for fine details
   if (params.detailImages && params.detailImages.length > 0) {
     parts.push({
-      text: `[DETAIL SHOTS - Use these ${params.detailImages.length} images as reference for specific textures, logos, button designs, stitching, and fine details]`
+      text: `[AUTHORITATIVE DETAIL SHOTS - EXACT REPRODUCTION REQUIRED]
+These ${params.detailImages.length} detail images are the PRIMARY REFERENCE for logos, textures, buttons, stitching, and fine details. 
+They override any ambiguity from product images. Treat these as pixel-perfect blueprints to copy exactly.
+Special emphasis: If these contain logos or brand marks, they must be reproduced identically - not approximated.`
     });
 
     params.detailImages.forEach((img, index) => {
       const detailLabel = img.name || `Detail ${index + 1}`;
+      // Check if this might be a logo shot based on the name
+      const isLikelyLogo = detailLabel.toLowerCase().includes('logo') ||
+        detailLabel.toLowerCase().includes('brand') ||
+        detailLabel.toLowerCase().includes('mark') ||
+        detailLabel.toLowerCase().includes('embroidery');
+
       parts.push({
-        text: `[DETAIL ${index + 1}: ${detailLabel}]`
+        text: `[DETAIL REFERENCE ${index + 1}${isLikelyLogo ? ' - LOGO/BRAND MARK' : ''}: ${detailLabel}]`
       });
       parts.push({
         inlineData: {
@@ -333,7 +353,7 @@ export async function generateImageWithGemini(params: ImageGenerationParams): Pr
         }
       });
     });
-    console.log(`🔍 Including ${params.detailImages.length} detail reference images`);
+    console.log(`🔍 Including ${params.detailImages.length} AUTHORITATIVE detail reference images`);
   }
 
   try {
