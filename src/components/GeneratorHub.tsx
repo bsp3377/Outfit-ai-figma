@@ -10,6 +10,7 @@ import { supabase } from '../utils/supabase';
 import { GenerationProgress } from './ui/GenerationProgress';
 import BlockLoader from './ui/block-loader';
 import { useCredits } from '../hooks/useCredits';
+import { overlayLogo, detectLogoPosition, LogoPlacement } from '../utils/logo-overlay';
 
 type TabType = 'fashion' | 'jewellery' | 'flatlay';
 type GenerationStep = 'uploading' | 'prompt' | 'generating' | 'saving' | null;
@@ -56,6 +57,17 @@ export function GeneratorHub() {
   const [autoSelectPose, setAutoSelectPose] = useState<boolean>(false);
   const [useBackend, setUseBackend] = useState<boolean>(true); // Use cost-optimized backend
 
+  // Logo overlay settings
+  const [applyLogoOverlay, setApplyLogoOverlay] = useState<boolean>(true); // Enable by default when logo detail shots are uploaded
+  const [autoDetectPosition, setAutoDetectPosition] = useState<boolean>(true); // Auto-position by default
+  const [logoPlacementSettings, setLogoPlacementSettings] = useState<LogoPlacement>({
+    x: 0.42,
+    y: 0.35,
+    width: 0.08,
+    rotation: 0,
+    opacity: 1.0,
+    blendMode: 'normal'
+  });
 
   const [formData, setFormData] = useState({
     // Shared field
@@ -427,17 +439,65 @@ export function GeneratorHub() {
       console.log('✅ Image generated successfully!');
       setGeneratedPrompt(result.promptUsed);
 
+      // Create initial data URL from the generated image
+      let finalImageUrl = `data:${result.mimeType};base64,${result.imageBase64}`;
+
+      // Apply logo overlay if enabled and we have logo detail shots
+      const hasLogoDetailShot = detailFiles.some(file =>
+        file.name.toLowerCase().includes('logo') ||
+        file.name.toLowerCase().includes('brand') ||
+        file.name.toLowerCase().includes('mark')
+      );
+
+      if (applyLogoOverlay && hasLogoDetailShot && detailFiles.length > 0) {
+        try {
+          console.log('🎨 Applying logo overlay for pixel-perfect accuracy...');
+
+          // Use the first detail shot that looks like a logo, or the first detail shot
+          const logoDetailShot = detailFiles.find(file =>
+            file.name.toLowerCase().includes('logo') ||
+            file.name.toLowerCase().includes('brand')
+          ) || detailFiles[0];
+
+          // Determine placement
+          let placement: LogoPlacement;
+          if (autoDetectPosition) {
+            placement = await detectLogoPosition(
+              finalImageUrl,
+              activeTab,
+              formData.gender
+            );
+            console.log(`   - Auto-detected logo position: x=${placement.x.toFixed(2)}, y=${placement.y.toFixed(2)}`);
+          } else {
+            placement = logoPlacementSettings;
+            console.log('   - Using manual logo placement');
+          }
+
+          // Apply the overlay
+          finalImageUrl = await overlayLogo({
+            generatedImage: finalImageUrl,
+            logoImage: logoDetailShot.url,
+            placement
+          });
+
+          console.log('✅ Logo overlay applied successfully!');
+        } catch (error) {
+          console.error('Error applying logo overlay:', error);
+          toast.error('Logo overlay failed', {
+            description: 'Using AI-generated logo instead'
+          });
+          // Continue with original image if overlay fails
+        }
+      }
+
       // Step 4: Saving
       setGenerationStep('saving');
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Create data URL from the generated image
-      const generatedImageUrl = `data:${result.mimeType};base64,${result.imageBase64}`;
-
       // Add the generated image to the results
       const newImage: GeneratedImage = {
         id: Date.now().toString(),
-        url: generatedImageUrl,
+        url: finalImageUrl,
         type: activeTab,
         timestamp: new Date(),
         liked: false,
@@ -461,9 +521,9 @@ export function GeneratorHub() {
         if (user) {
           console.log('Uploading image to Supabase Storage for user:', user.id);
 
-          // Convert base64 to blob for storage upload
-          const base64Data = generatedImageUrl.split(',')[1];
-          const mimeMatch = generatedImageUrl.match(/^data:([^;]+);base64,/);
+          // Convert base64 to blob for storage upload (use final image with overlay)
+          const base64Data = finalImageUrl.split(',')[1];
+          const mimeMatch = finalImageUrl.match(/^data:([^;]+);base64,/);
           const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
           const extension = mimeType === 'image/jpeg' || mimeType === 'image/jpg' ? 'jpg' : 'png';
 
