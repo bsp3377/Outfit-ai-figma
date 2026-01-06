@@ -1,28 +1,24 @@
 """
 VirtualOutfit AI - Cost-Optimized Image Generation Pipeline
 
-This module implements a 3-step pipeline for generating AI fashion photography:
-1. Vision Analysis (Gemini Flash) - Cheap text generation from image
-2. Preview Generation (Imagen Fast) - Low-cost image preview
-3. Ultra Quality Generation (Imagen Ultra) - High-quality final output
+This module implements a pipeline for generating AI fashion photography using fashn.ai:
+1. Prompt Construction - Create optimized prompt from user input
+2. Preview Generation (fashn.ai '1k') - Fast generation
+3. Ultra Quality Generation (fashn.ai '4k') - High quality generation
 
-Cost Optimization Strategy:
-- Step 1: ~$0.0001 per request (text only)
-- Step 2: ~$0.02 per image (fast model)
-- Step 3: ~$0.08 per image (ultra model, only on HD download)
 """
 
 import os
 import base64
 import logging
-from typing import Optional
-from io import BytesIO
+from typing import Optional, Dict, Any
 
+import json
 import vertexai
-from vertexai.generative_models import GenerativeModel, Part, Image
 from vertexai.preview.vision_models import ImageGenerationModel
-
 from dotenv import load_dotenv
+from fashn_provider import FashnProvider
+from google.oauth2 import service_account
 
 # Load environment variables
 load_dotenv()
@@ -31,24 +27,69 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Vertex AI Configuration
-PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "your-project-id")
-LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+# Initialize Provider
+_fashn_provider = None
+_vertex_model = None
 
-# Model names
-VISION_MODEL = "gemini-2.0-flash-exp"  # Fast, cheap vision analysis
-PREVIEW_MODEL = "imagen-4.0-generate-preview-05-20"  # Imagen 4 Standard
-ULTRA_MODEL = "imagen-4.0-generate-preview-05-20"  # Imagen 4 Standard (same for HD)
+def get_fashn_provider():
+    global _fashn_provider
+    if _fashn_provider is None:
+        _fashn_provider = FashnProvider()
+    return _fashn_provider
 
-# Initialize Vertex AI
-def initialize_vertex_ai():
-    """Initialize Vertex AI with project credentials"""
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
-    logger.info(f"Vertex AI initialized: project={PROJECT_ID}, location={LOCATION}")
+def get_vertex_model():
+    global _vertex_model
+    if _vertex_model is None:
+        # Initialize Vertex AI
+        try:
+            project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+            location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+            
+            # check for Vercel/Cloud env var with JSON credentials
+            google_creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+            
+            if google_creds_json:
+                try:
+                    logger.info("Loading Google Credentials from GOOGLE_CREDENTIALS_JSON env var...")
+                    creds_dict = json.loads(google_creds_json)
+                    credentials = service_account.Credentials.from_service_account_info(creds_dict)
+                    
+                    # Initialize with explicit credentials
+                    # Note: project argument matches the loading project, usually in the JSON
+                    project = project_id or creds_dict.get("project_id")
+                    
+                    vertexai.init(project=project, location=location, credentials=credentials)
+                    _vertex_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
+                    logger.info("Vertex AI initialized with JSON credentials")
+                    return _vertex_model
+                except Exception as json_err:
+                    logger.error(f"Failed to load credentials from JSON env var: {json_err}")
+                    # Fallthrough to default method
+            
+            # Standard initialization (File path or Default Creds)
+            if project_id:
+                vertexai.init(project=project_id, location=location)
+                _vertex_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
+                logger.info("Vertex AI ImageGenerationModel initialized")
+            else:
+                 # Attempt auto-discovery
+                vertexai.init(location=location)
+                _vertex_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
+                logger.info("Vertex AI initialized (auto-discovery)")
+        except Exception as e:
+            logger.warning(f"Vertex AI initialization failed: {e}")
+            
+    return _vertex_model
 
+def initialize_services():
+    """Explicitly initialize services for startup checks."""
+    logger.info("Initializing services...")
+    get_fashn_provider()
+    get_vertex_model()
+    logger.info("Services initialized.")
 
 # ============================================
-# STEP 1: Vision Analysis (The "Eye")
+# STEP 1: Vision Analysis / Prompt Construction
 # ============================================
 
 async def analyze_outfit_image(
@@ -58,155 +99,93 @@ async def analyze_outfit_image(
     generation_type: str = "fashion"
 ) -> str:
     """
-    Step 1: Analyze the uploaded product image using Gemini Flash.
+    Step 1: Construct a prompt for the image.
     
-    This is the cheapest step - uses Gemini Flash for text generation only.
-    Returns a detailed prompt optimized for image generation.
+    Previously used Gemini Vision, now simplified to use user description directly
+    plus some template formatting to save costs/complexity.
     
     Args:
         image_data: Raw bytes of the uploaded image
-        mime_type: MIME type of the image (image/jpeg, image/png, etc.)
+        mime_type: MIME type of the image
         product_description: User's description of the product
         generation_type: Type of generation (fashion, jewellery, flatlay)
     
     Returns:
         A detailed text prompt for image generation
     """
-    try:
-        # Initialize the vision model
-        model = GenerativeModel(VISION_MODEL)
-        
-        # Create image part from bytes
-        image_part = Part.from_data(data=image_data, mime_type=mime_type)
-        
-        # Build the analysis prompt based on generation type
-        if generation_type == "fashion":
-            analysis_prompt = f"""Analyze this clothing/apparel image in detail for AI image generation.
-
-User's description: {product_description}
-
-Please provide a comprehensive description including:
-1. **Garment Type**: What type of clothing is this (dress, jacket, shirt, pants, etc.)?
-2. **Color & Pattern**: Exact colors, any patterns, prints, or textures
-3. **Fabric**: What material does it appear to be (cotton, silk, denim, leather, etc.)?
-4. **Style**: The fashion style (casual, formal, streetwear, bohemian, etc.)
-5. **Fit**: How the garment appears to fit (slim, relaxed, oversized, tailored)
-6. **Key Details**: Buttons, zippers, pockets, collar style, sleeve length, etc.
-7. **Suggested Model Look**: What type of model and pose would showcase this best?
-
-Format your response as a single, detailed prompt paragraph optimized for AI image generation.
-Start directly with the description, no preamble."""
-
-        elif generation_type == "jewellery":
-            analysis_prompt = f"""Analyze this jewelry/accessory image in detail for AI image generation.
-
-User's description: {product_description}
-
-Please provide a comprehensive description including:
-1. **Item Type**: What type of accessory (necklace, ring, watch, bracelet, earrings, etc.)?
-2. **Material**: Metal type, gemstones, or other materials visible
-3. **Style**: Classic, modern, bohemian, luxury, minimalist, etc.
-4. **Size & Proportion**: Relative size and how it would look when worn
-5. **Key Details**: Clasps, settings, engravings, chain style, etc.
-6. **Finish**: Polished, matte, textured, hammered, etc.
-7. **Suggested Presentation**: How to best showcase this piece on a model
-
-Format your response as a single, detailed prompt paragraph optimized for AI image generation.
-Start directly with the description, no preamble."""
-
-        else:  # flatlay / creative
-            analysis_prompt = f"""Analyze this product image in detail for AI product photography.
-
-User's description: {product_description}
-
-Please provide a comprehensive description including:
-1. **Product Type**: What is this product?
-2. **Colors & Textures**: All colors and surface textures visible
-3. **Materials**: What materials is it made of?
-4. **Shape & Form**: The overall shape and any distinctive features
-5. **Details**: Any logos, labels, buttons, or decorative elements
-6. **Suggested Styling**: Props and background that would complement it
-7. **Photography Angle**: Best angle to showcase this product
-
-Format your response as a single, detailed prompt paragraph optimized for AI image generation.
-Start directly with the description, no preamble."""
-
-        # Generate the analysis
-        response = model.generate_content([image_part, analysis_prompt])
-        
-        analyzed_prompt = response.text.strip()
-        logger.info(f"Vision analysis complete: {len(analyzed_prompt)} characters")
-        
-        return analyzed_prompt
-        
-    except Exception as e:
-        logger.error(f"Vision analysis failed: {str(e)}")
-        # Fallback to user's description if analysis fails
-        return product_description or "A fashion product photo"
+    # Simple pass-through construction. 
+    # In a real "Vision" scenario we'd use an LLM, but for now we rely on the user's text.
+    
+    if generation_type == "fashion":
+        base = product_description or "A stylish fashion product"
+        return f"Professional fashion photography of {base}, worn by a model, high quality, realistic texture"
+    elif generation_type == "jewellery":
+        base = product_description or "A piece of jewelry"
+        return f"Professional macro photography of {base}, worn by a model, cinematic lighting, ultra detailed"
+    else:
+        base = product_description or "A product"
+        return f"Professional product photography of {base}, studio lighting, high resolution"
 
 
 # ============================================
-# STEP 2: Preview Generation (The "Draft")
+# STEP 2: Preview Generation (1k Resolution)
 # ============================================
 
 async def generate_preview(
     prompt: str,
     aspect_ratio: str = "3:4",
-    negative_prompt: str = ""
+    negative_prompt: str = "",
+    image_base64_input: Optional[str] = None # We need the input image now!
 ) -> dict:
     """
-    Step 2: Generate a preview image using Imagen Fast model.
-    
-    This is the medium-cost step - used for "Try On" button.
-    Fast generation with good quality for previewing poses.
-    
-    Args:
-        prompt: The image generation prompt (from Step 1 or user-enhanced)
-        aspect_ratio: Output aspect ratio (default 3:4 for portraits)
-        negative_prompt: Things to avoid in the image
-    
-    Returns:
-        dict with 'image_base64' and 'mime_type'
+    Step 2: Generate a preview image using fashn.ai (1k resolution).
     """
     try:
-        # Initialize the preview model
-        model = ImageGenerationModel.from_pretrained(PREVIEW_MODEL)
+        provider = get_fashn_provider()
         
-        # Default negative prompt for quality control
-        if not negative_prompt:
-            negative_prompt = (
-                "blurry, low quality, distorted, deformed, ugly, bad anatomy, "
-                "bad proportions, watermark, text, logo on clothing, "
-                "studio equipment, lighting rigs, softboxes, cameras visible"
-            )
+        # Ensure we have the input image passed down. 
+        # Note: The original signature didn't have image_base64_input, 
+        # but fashn.ai NEEDS the product image for 'product-to-model'.
+        # We will need to update the caller to pass this.
         
-        # Generate the preview image
-        images = model.generate_images(
+        if not image_base64_input:
+            raise ValueError("Input image is required for Fashn.ai generation")
+
+        # Prepare the image string (ensure it has prefix if raw base64, or just pass if URL)
+        # Assuming input is raw base64 from our frontend decoding
+        if not image_base64_input.startswith("http") and not image_base64_input.startswith("data:"):
+            # Add minimal prefix for fashn.ai if needed, or assume it handles raw base64? 
+            # Ops, request says "image URL | base64". Usually raw base64 needs data URI scheme for clarity.
+            image_input = f"data:image/jpeg;base64,{image_base64_input}"
+        else:
+            image_input = image_base64_input
+
+        result_data = await provider.run_product_to_model(
+            product_image=image_input,
             prompt=prompt,
-            number_of_images=1,
-            aspect_ratio=aspect_ratio,
             negative_prompt=negative_prompt,
-            add_watermark=False,
-            safety_filter_level="block_some",
-            person_generation="allow_adult",
+            aspect_ratio=aspect_ratio,
+            resolution="1k"
         )
         
-        if not images or len(images) == 0:
-            raise ValueError("No images generated")
-        
-        # Get the first image
-        generated_image = images[0]
-        
-        # Convert to base64
-        image_bytes = generated_image._image_bytes
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        
-        logger.info(f"Preview generated successfully: {len(image_bytes)} bytes")
-        
+        # Extract output
+        outputs = result_data.get("output", [])
+        if not outputs:
+            raise ValueError("No output images returned from Fashn.ai")
+            
+        output_image = outputs[0] # This matches the data:image... format if return_base64=True
+
+        # Strip prefix for internal consistency if needed
+        if output_image.startswith("data:image"):
+            # Split at comma e.g. "data:image/png;base64,....."
+            _, b64_data = output_image.split(",", 1)
+        else:
+            b64_data = output_image
+            
         return {
-            "image_base64": image_base64,
+            "image_base64": b64_data,
             "mime_type": "image/png",
-            "model_used": PREVIEW_MODEL,
+            "model_used": "fashn-product-to-model-1k",
             "quality": "preview"
         }
         
@@ -216,77 +195,139 @@ async def generate_preview(
 
 
 # ============================================
-# STEP 3: Ultra Quality Generation (The "Final")
+# STEP 3: Ultra Quality Generation (4k Resolution)
 # ============================================
 
 async def generate_ultra_quality(
     prompt: str,
     aspect_ratio: str = "3:4",
-    negative_prompt: str = ""
+    negative_prompt: str = "",
+    image_base64_input: Optional[str] = None
 ) -> dict:
     """
-    Step 3: Generate ultra-high-quality image using Imagen Ultra model.
-    
-    This is the premium step - only triggered on "Download HD" button.
-    Maximum quality for final deliverables.
-    
-    Args:
-        prompt: The image generation prompt
-        aspect_ratio: Output aspect ratio
-        negative_prompt: Things to avoid in the image
-    
-    Returns:
-        dict with 'image_base64' and 'mime_type'
+    Step 3: Generate ultra-high-quality image using fashn.ai (4k resolution).
     """
     try:
-        # Initialize the ultra model
-        model = ImageGenerationModel.from_pretrained(ULTRA_MODEL)
+        provider = get_fashn_provider()
         
-        # Enhanced negative prompt for ultra quality
-        if not negative_prompt:
-            negative_prompt = (
-                "blurry, low quality, distorted, deformed, ugly, bad anatomy, "
-                "bad proportions, watermark, text, logo on clothing, "
-                "studio equipment, lighting rigs, cameras, softboxes, "
-                "artificial looking, plastic skin, oversaturated"
-            )
-        
-        # Enhance the prompt for ultra quality
-        enhanced_prompt = f"{prompt} Ultra-high resolution, 8K quality, professional photography, magazine-quality retouching, perfect lighting."
-        
-        # Generate the ultra quality image
-        images = model.generate_images(
-            prompt=enhanced_prompt,
-            number_of_images=1,
-            aspect_ratio=aspect_ratio,
+        if not image_base64_input:
+            raise ValueError("Input image is required for Fashn.ai generation")
+
+        if not image_base64_input.startswith("http") and not image_base64_input.startswith("data:"):
+            image_input = f"data:image/jpeg;base64,{image_base64_input}"
+        else:
+            image_input = image_base64_input
+
+        result_data = await provider.run_product_to_model(
+            product_image=image_input,
+            prompt=prompt,
             negative_prompt=negative_prompt,
-            add_watermark=False,
-            safety_filter_level="block_some",
-            person_generation="allow_adult",
+            aspect_ratio=aspect_ratio,
+            resolution="4k" # The key difference
         )
         
-        if not images or len(images) == 0:
-            raise ValueError("No images generated")
+        outputs = result_data.get("output", [])
+        if not outputs:
+            raise ValueError("No output images returned from Fashn.ai")
+            
+        output_image = outputs[0]
         
-        # Get the first image
-        generated_image = images[0]
-        
-        # Convert to base64
-        image_bytes = generated_image._image_bytes
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        
-        logger.info(f"Ultra quality generated successfully: {len(image_bytes)} bytes")
-        
+        if output_image.startswith("data:image"):
+            _, b64_data = output_image.split(",", 1)
+        else:
+            b64_data = output_image
+            
         return {
-            "image_base64": image_base64,
+            "image_base64": b64_data,
             "mime_type": "image/png",
-            "model_used": ULTRA_MODEL,
+            "model_used": "fashn-product-to-model-4k",
             "quality": "ultra"
         }
         
     except Exception as e:
         logger.error(f"Ultra quality generation failed: {str(e)}")
         raise
+
+
+# ============================================
+# Vertex AI Implementation (Backup)
+# ============================================
+
+async def generate_image_vertex(
+    prompt: str,
+    aspect_ratio: str = "3:4",
+    negative_prompt: str = ""
+) -> dict:
+    """
+    Generate image using Vertex AI (Imagen).
+    Fallback method.
+    """
+    try:
+        model = get_vertex_model()
+        if not model:
+            raise ValueError("Vertex AI model not initialized")
+
+        logger.info(f"Generating fallback image with Vertex AI... Prompt: {prompt[:50]}...")
+        
+        # Calculate aspect ratio string for Vertex
+        # Imagen supports: "1:1", "3:4", "4:3", "9:16", "16:9"
+        
+        response = model.generate_images(
+            prompt=prompt,
+            number_of_images=1,
+            aspect_ratio=aspect_ratio,
+            negative_prompt=negative_prompt,
+            safety_filter_level="block_some",
+            person_generation="allow_adult"
+        )
+        
+        if not response.images:
+             raise ValueError("No images returned from Vertex AI")
+        
+        img_bytes = response.images[0]._image_bytes
+        b64_data = base64.b64encode(img_bytes).decode("utf-8")
+        
+        return {
+            "image_base64": b64_data,
+            "mime_type": "image/jpeg", # Imagen usually returns JPEG or PNG, typically JPEG
+            "model_used": "vertex-imagen-006",
+            "quality": "standard" # Vertex doesn't strictly distinguish 1k/4k in this API the same way
+        }
+
+    except Exception as e:
+        logger.error(f"Vertex AI generation failed: {str(e)}")
+        raise
+
+
+# ============================================
+# Fallback Wrapper
+# ============================================
+
+async def generate_with_fallback(
+    prompt: str,
+    aspect_ratio: str = "3:4",
+    negative_prompt: str = "",
+    image_base64_input: Optional[str] = None,
+    quality: str = "preview"
+) -> dict:
+    """
+    Try Fashn.ai first, then fallback to Vertex AI.
+    """
+    # 1. Try Fashn.ai
+    try:
+        if quality == "ultra":
+            return await generate_ultra_quality(prompt, aspect_ratio, negative_prompt, image_base64_input)
+        else:
+            return await generate_preview(prompt, aspect_ratio, negative_prompt, image_base64_input)
+            
+    except Exception as fashn_error:
+        logger.warning(f"Primary provider (Fashn.ai) failed: {fashn_error}. Switching to fallback (Vertex AI)...")
+        
+        try:
+            return await generate_image_vertex(prompt, aspect_ratio, negative_prompt)
+        except Exception as vertex_error:
+            logger.error(f"Fallback provider (Vertex AI) also failed: {vertex_error}")
+            raise fashn_error 
 
 
 # ============================================
@@ -304,21 +345,9 @@ async def generate_outfit_image(
 ) -> dict:
     """
     Complete pipeline: Analyze image → Generate with appropriate quality.
-    
-    Args:
-        image_data: Raw bytes of the uploaded product image
-        mime_type: MIME type of the image
-        product_description: User's description
-        generation_type: Type of generation (fashion, jewellery, flatlay)
-        quality: Output quality ("preview" for Try On, "ultra" for Download HD)
-        form_data: Additional form settings (pose, background, etc.)
-        aspect_ratio: Output aspect ratio
-    
-    Returns:
-        dict with generated image data and metadata
     """
     
-    # Step 1: Analyze the image to create an optimized prompt
+    # Step 1: Analyze / Construct Prompt
     base_prompt = await analyze_outfit_image(
         image_data=image_data,
         mime_type=mime_type,
@@ -332,17 +361,16 @@ async def generate_outfit_image(
     else:
         enhanced_prompt = base_prompt
     
-    # Step 2 or 3: Generate based on quality level
-    if quality == "ultra":
-        result = await generate_ultra_quality(
-            prompt=enhanced_prompt,
-            aspect_ratio=aspect_ratio
-        )
-    else:
-        result = await generate_preview(
-            prompt=enhanced_prompt,
-            aspect_ratio=aspect_ratio
-        )
+    # Convert input bytes back to base64 string for the API call
+    input_b64 = base64.b64encode(image_data).decode('utf-8')
+    
+    # Step 2: Generate (with Fallback)
+    result = await generate_with_fallback(
+        prompt=enhanced_prompt,
+        aspect_ratio=aspect_ratio,
+        image_base64_input=input_b64,
+        quality=quality
+    )
     
     # Add the prompts to the result
     result["base_prompt"] = base_prompt
@@ -381,10 +409,6 @@ def _enhance_prompt_with_form_data(base_prompt: str, form_data: dict, generation
             enhancements.append(f"{form_data['accessoriesLighting']} lighting")
     
     if enhancements:
-        return f"{base_prompt}. {', '.join(enhancements)}. Professional e-commerce photography."
+        return f"{base_prompt}. {', '.join(enhancements)}."
     
     return base_prompt
-
-
-# Initialize on module load
-initialize_vertex_ai()

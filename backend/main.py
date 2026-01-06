@@ -5,9 +5,9 @@ This is the main API server that exposes the 3-step image generation pipeline
 to the React frontend.
 
 Endpoints:
-- POST /api/analyze - Step 1: Vision analysis (cheap)
-- POST /api/generate/preview - Step 2: Preview generation (medium cost)
-- POST /api/generate/ultra - Step 3: Ultra quality (premium)
+- POST /api/analyze - Step 1: Vision analysis/Prompt creation
+- POST /api/generate/preview - Step 2: Preview generation (fashn.ai 1k)
+- POST /api/generate/ultra - Step 3: Ultra quality (fashn.ai 4k)
 - POST /api/generate - Combined pipeline (analyze + generate)
 """
 
@@ -27,7 +27,7 @@ from image_pipeline import (
     generate_preview,
     generate_ultra_quality,
     generate_outfit_image,
-    initialize_vertex_ai
+    initialize_services
 )
 
 # Configure logging
@@ -76,6 +76,7 @@ class GenerateRequest(BaseModel):
     prompt: str
     aspect_ratio: str = "3:4"
     negative_prompt: str = ""
+    image_base64: Optional[str] = None # Added for fashn.ai support
 
 
 class GenerateResponse(BaseModel):
@@ -121,10 +122,7 @@ async def health_check():
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze_image(request: AnalyzeRequest):
     """
-    Step 1: Analyze product image using Gemini Flash.
-    
-    This is the cheapest step (~$0.0001 per request).
-    Returns an optimized prompt for image generation.
+    Step 1: Analyze product image (Simplified).
     """
     try:
         # Decode base64 image
@@ -140,7 +138,7 @@ async def analyze_image(request: AnalyzeRequest):
         
         return AnalyzeResponse(
             prompt=prompt,
-            model_used="gemini-2.0-flash-exp"
+            model_used="template-based-v1"
         )
         
     except Exception as e:
@@ -155,16 +153,16 @@ async def analyze_image(request: AnalyzeRequest):
 @app.post("/api/generate/preview", response_model=GenerateResponse)
 async def generate_preview_image(request: GenerateRequest):
     """
-    Step 2: Generate preview image using Imagen Fast.
+    Step 2: Generate preview image using Fashn.ai (1k).
     
-    Medium cost (~$0.02 per image).
-    Use this for "Try On" button - fast preview of poses.
+    Requires 'image_base64' in request now.
     """
     try:
         result = await generate_preview(
             prompt=request.prompt,
             aspect_ratio=request.aspect_ratio,
-            negative_prompt=request.negative_prompt
+            negative_prompt=request.negative_prompt,
+            image_base64_input=request.image_base64
         )
         
         return GenerateResponse(**result)
@@ -181,16 +179,14 @@ async def generate_preview_image(request: GenerateRequest):
 @app.post("/api/generate/ultra", response_model=GenerateResponse)
 async def generate_ultra_image(request: GenerateRequest):
     """
-    Step 3: Generate ultra-quality image using Imagen Ultra.
-    
-    Premium cost (~$0.08 per image).
-    Use this ONLY for "Download HD" button.
+    Step 3: Generate ultra-quality image using Fashn.ai (4k).
     """
     try:
         result = await generate_ultra_quality(
             prompt=request.prompt,
             aspect_ratio=request.aspect_ratio,
-            negative_prompt=request.negative_prompt
+            negative_prompt=request.negative_prompt,
+            image_base64_input=request.image_base64
         )
         
         return GenerateResponse(**result)
@@ -208,10 +204,6 @@ async def generate_ultra_image(request: GenerateRequest):
 async def generate_full_pipeline(request: FullGenerateRequest):
     """
     Combined pipeline: Analyze → Generate in one call.
-    
-    Automatically selects model based on 'quality' parameter:
-    - "preview": Uses Imagen Fast (~$0.02 total)
-    - "ultra": Uses Imagen Ultra (~$0.08 total)
     """
     try:
         # Decode base64 image
@@ -248,9 +240,7 @@ async def generate_from_upload(
     aspect_ratio: str = Form("3:4"),
 ):
     """
-    Generate image from uploaded file (multipart/form-data).
-    
-    Alternative to base64 for direct file uploads.
+    Generate image from uploaded file.
     """
     try:
         # Read the uploaded file
@@ -280,10 +270,10 @@ async def generate_from_upload(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Vertex AI on startup"""
+    """Initialize backend services"""
     logger.info("Starting VirtualOutfit AI Backend...")
-    initialize_vertex_ai()
-    logger.info("Backend ready!")
+    initialize_services()
+    logger.info("Backend ready with Fashn.ai provider and Vertex AI fallback!")
 
 
 # ============================================
