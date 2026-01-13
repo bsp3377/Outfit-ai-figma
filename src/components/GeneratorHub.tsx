@@ -361,11 +361,48 @@ export function GeneratorHub() {
               return;
             }
 
-            productImages.push({
-              mimeType: matches[1],
-              base64: matches[2],
-              name: file.name
-            });
+            // Compress image to avoid 413 Payload Too Large (Vercel limit ~4.5MB)
+            const compressImage = (img: HTMLImageElement): string => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+
+              // Max dimension 1500px (good balance of quality vs size)
+              const MAX_DIMENSION = 1500;
+              if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                if (width > height) {
+                  height = (height / width) * MAX_DIMENSION;
+                  width = MAX_DIMENSION;
+                } else {
+                  width = (width / height) * MAX_DIMENSION;
+                  height = MAX_DIMENSION;
+                }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+
+              // Compress to JPEG at 80% quality
+              return canvas.toDataURL('image/jpeg', 0.8);
+            };
+
+            const compressedDataUrl = compressImage(img);
+            const compressedMatches = compressedDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+
+            if (compressedMatches) {
+              productImages.push({
+                mimeType: compressedMatches[1],
+                base64: compressedMatches[2], // Use compressed base64
+                name: file.name
+              });
+
+              // Log compression result
+              const originalSize = file.url.length;
+              const compressedSize = compressedDataUrl.length;
+              console.log(`📉 Compressed ${file.name}: ${(originalSize / 1024 / 1024).toFixed(2)}MB -> ${(compressedSize / 1024 / 1024).toFixed(2)}MB`);
+            }
           }
         }
       }
