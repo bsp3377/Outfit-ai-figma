@@ -406,19 +406,34 @@ export function GeneratorHub() {
         if (file.url.startsWith('data:')) {
           const matches = file.url.match(/^data:([^;]+);base64,(.+)$/);
           if (matches) {
-            // Validate image dimensions
+            // Validate image dimensions with proper error handling
             const img = new Image();
             img.src = file.url;
-            await new Promise((resolve) => {
-              img.onload = resolve;
-            });
+
+            try {
+              await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error(`Failed to load image: ${file.name}`));
+                // Timeout after 30 seconds
+                setTimeout(() => reject(new Error(`Image load timeout: ${file.name}`)), 30000);
+              });
+            } catch (loadError) {
+              console.error('Image load error:', loadError);
+              toast.error('Load failed', {
+                description: loadError instanceof Error ? loadError.message : `Could not load ${file.name}`
+              });
+              setGenerationError('Load failed');
+              setIsGenerating(false);
+              setGenerationStep(null);
+              return;
+            }
 
             if (img.width < 128 || img.height < 128) {
               toast.error(`Image "${file.name}" is too small`, {
                 description: 'Product images must be at least 128x128 pixels.'
               });
               setIsGenerating(false);
-              setGenerationStep('idle');
+              setGenerationStep(null);
               return;
             }
 
@@ -507,6 +522,17 @@ export function GeneratorHub() {
         const parts = [productDescription];
 
         if (activeTab === 'fashion') {
+          // Log settings being applied
+          console.log('🎨 Generation Settings:', {
+            age: formData.age,
+            gender: formData.gender,
+            ethnicity: formData.ethnicity,
+            hairstyle: formData.hairstyle,
+            pose: formData.pose,
+            background: formData.background,
+            lighting: formData.lighting
+          });
+
           if (formData.age) parts.push(`${formData.age} years old`);
           if (formData.gender) parts.push(`${formData.gender} model`);
           if (formData.ethnicity) parts.push(`${formData.ethnicity} ethnicity`);
@@ -528,7 +554,7 @@ export function GeneratorHub() {
       };
 
       const generationPrompt = buildPrompt();
-      console.log('   - Prompt:', generationPrompt.substring(0, 100) + '...');
+      console.log('📝 Full Generation Prompt:', generationPrompt);
 
       // Call the backend API (FASHN.ai Product-to-Model)
       // Note: FASHN.ai requires the product image base64

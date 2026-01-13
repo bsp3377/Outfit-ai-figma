@@ -82,6 +82,54 @@ function readFileAsDataUrl(file: File | Blob): Promise<string> {
 }
 
 /**
+ * Convert any image to JPEG using canvas (fixes PNG with transparency issues)
+ */
+async function convertToJpegViaCanvas(dataUrl: string, fileName: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error('Failed to create canvas context'));
+                    return;
+                }
+
+                // Fill with white background (handles PNG transparency)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw the image
+                ctx.drawImage(img, 0, 0);
+
+                // Convert to JPEG at high quality
+                const jpegUrl = canvas.toDataURL('image/jpeg', 0.92);
+                console.log(`✅ Converted ${fileName} to JPEG via canvas`);
+                resolve(jpegUrl);
+            } catch (error) {
+                reject(new Error(`Canvas conversion failed: ${error}`));
+            }
+        };
+
+        img.onerror = () => {
+            reject(new Error(`Failed to load image for canvas conversion: ${fileName}`));
+        };
+
+        // Set a timeout for image loading
+        setTimeout(() => {
+            reject(new Error(`Image load timeout during canvas conversion: ${fileName}`));
+        }, 30000);
+
+        img.src = dataUrl;
+    });
+}
+
+/**
  * Process an uploaded file for use in AI generation
  * Handles HEIC conversion and returns ready-to-use data
  */
@@ -109,20 +157,35 @@ export async function processUploadedImage(file: File): Promise<{
     }
 
     // Read the file as data URL
+    let dataUrl: string;
     try {
-        const dataUrl = await readFileAsDataUrl(processedFile);
-        console.log(`✅ Image processed successfully: ${file.name}`);
-
-        return {
-            url: dataUrl,
-            name: file.name,
-            size: file.size,
-            mimeType: mimeType
-        };
+        dataUrl = await readFileAsDataUrl(processedFile);
     } catch (error) {
         console.error('Failed to read file:', error);
         throw new Error(`Failed to read file "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+
+    // For PNG files, convert to JPEG to avoid transparency issues during generation
+    const isPng = mimeType === 'image/png' || file.name.toLowerCase().endsWith('.png');
+    if (isPng) {
+        console.log('🔄 Converting PNG to JPEG for compatibility...');
+        try {
+            dataUrl = await convertToJpegViaCanvas(dataUrl, file.name);
+            mimeType = 'image/jpeg';
+        } catch (error) {
+            console.warn('PNG conversion failed, using original:', error);
+            // Keep the original PNG if conversion fails
+        }
+    }
+
+    console.log(`✅ Image processed successfully: ${file.name}`);
+
+    return {
+        url: dataUrl,
+        name: file.name,
+        size: file.size,
+        mimeType: mimeType
+    };
 }
 
 /**
