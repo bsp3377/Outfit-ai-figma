@@ -11,7 +11,8 @@
  */
 
 // Backend URL - defaults to localhost for development
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+// Backend URL - defaults to relative path in production, localhost in dev
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD ? '' : 'http://localhost:8000');
 
 // ============================================
 // Types
