@@ -3,7 +3,8 @@ import { Upload, Wand2, Sparkles, Image as ImageIcon, Download, Heart, Trash2, X
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
-import { generateImageWithGemini, getGeminiApiKey } from '../utils/gemini-api';
+import { generatePreview as generateImageBackend } from '../utils/backend-api';
+import { getGeminiApiKey } from '../utils/gemini-api';
 import { generateImage, checkBackendHealth } from '../utils/backend-api';
 import { ColorPicker, ColorState } from './ColorPicker';
 import { supabase } from '../utils/supabase';
@@ -381,66 +382,53 @@ export function GeneratorHub() {
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Step 3: Generating images with Gemini AI
+      // Step 3: Generating images with OpenAI DALL-E 3 backend
       setGenerationStep('generating');
 
-      console.log('🚀 Starting image generation with Gemini...');
+      console.log('🚀 Starting image generation with OpenAI DALL-E 3...');
       console.log(`   - ${productImages.length} products to include`);
-      if (logoImageBase64) console.log('   - Including brand logo');
-      if (inspiredTemplateBase64) console.log('   - Including inspired template reference');
 
-      // Extract detail images for texture/logo/button references
-      const detailImagesData: { base64: string; mimeType: string; name: string }[] = [];
-      for (const file of detailFiles) {
-        if (file.url.startsWith('data:')) {
-          const matches = file.url.match(/^data:([^;]+);base64,(.+)$/);
-          if (matches) {
-            detailImagesData.push({
-              mimeType: matches[1],
-              base64: matches[2],
-              name: file.name
-            });
-          }
+      // Build a comprehensive prompt from form data
+      const buildPrompt = () => {
+        const parts = [productDescription];
+
+        if (activeTab === 'fashion') {
+          if (formData.gender) parts.push(`${formData.gender} model`);
+          if (formData.ethnicity) parts.push(`${formData.ethnicity} ethnicity`);
+          if (formData.hairstyle) parts.push(`${formData.hairstyle.replace(/-/g, ' ')} hairstyle`);
+          if (formData.pose) parts.push(`${formData.pose.replace(/-/g, ' ')} pose`);
+          if (formData.background) parts.push(`${formData.background.replace(/-/g, ' ')} background`);
+          if (formData.lighting) parts.push(`${formData.lighting.replace(/-/g, ' ')} lighting`);
+          parts.push('professional fashion photography, high-end editorial style, studio quality');
+        } else if (activeTab === 'jewellery') {
+          if (formData.accessoriesShotStyle) parts.push(`${formData.accessoriesShotStyle.replace(/-/g, ' ')} shot`);
+          if (formData.accessoriesBackground) parts.push(`${formData.accessoriesBackground.replace(/-/g, ' ')} background`);
+          if (formData.accessoriesLighting) parts.push(`${formData.accessoriesLighting.replace(/-/g, ' ')} lighting`);
+          parts.push('luxury jewelry photography, cinematic lighting, macro detail');
+        } else {
+          parts.push('professional product photography, studio lighting, commercial quality');
         }
-      }
-      if (detailImagesData.length > 0) console.log(`   - Including ${detailImagesData.length} detail reference images`);
 
-      // Prepare formData with auto-selected values if enabled
-      const finalFormData = { ...formData };
+        return parts.filter(Boolean).join(', ');
+      };
 
-      if (autoSelectHairstyle && hairstyleOptions.length > 0) {
-        // Filter out 'other' option and pick a random hairstyle
-        const validOptions = hairstyleOptions.filter(opt => opt.value !== 'other');
-        const randomIndex = Math.floor(Math.random() * validOptions.length);
-        finalFormData.hairstyle = validOptions[randomIndex].value;
-        console.log(`   - Auto-selected hairstyle: ${validOptions[randomIndex].label}`);
-      }
+      const generationPrompt = buildPrompt();
+      console.log('   - Prompt:', generationPrompt.substring(0, 100) + '...');
 
-      if (autoSelectPose && poseOptions.length > 0) {
-        // Filter out 'custom' option and pick a random pose
-        const validOptions = poseOptions.filter(opt => opt.value !== 'custom');
-        const randomIndex = Math.floor(Math.random() * validOptions.length);
-        finalFormData.pose = validOptions[randomIndex].value;
-        console.log(`   - Auto-selected pose: ${validOptions[randomIndex].label}`);
-      }
-
-      const result = await generateImageWithGemini({
-        productDescription,
-        tabType: activeTab,
-        formData: finalFormData,
-        productImages,
-        logoImageBase64,
-        logoImageMimeType,
-        inspiredTemplateBase64,
-        inspiredTemplateMimeType,
-        detailImages: detailImagesData,
+      // Call the backend API (FASHN.ai Product-to-Model)
+      // Note: FASHN.ai requires the product image base64
+      const result = await generateImageBackend({
+        prompt: generationPrompt,
+        aspect_ratio: '3:4',
+        negative_prompt: '',
+        image_base64: productImages.length > 0 ? productImages[0].base64 : undefined
       });
 
       console.log('✅ Image generated successfully!');
-      setGeneratedPrompt(result.promptUsed);
+      setGeneratedPrompt(generationPrompt);
 
       // Create initial data URL from the generated image
-      let finalImageUrl = `data:${result.mimeType};base64,${result.imageBase64}`;
+      let finalImageUrl = `data:${result.mime_type};base64,${result.image_base64}`;
 
       // Apply logo overlay if enabled and we have logo detail shots
       const hasLogoDetailShot = detailFiles.some(file =>

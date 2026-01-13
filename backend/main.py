@@ -2,12 +2,12 @@
 VirtualOutfit AI - FastAPI Backend Server
 
 This is the main API server that exposes the 3-step image generation pipeline
-to the React frontend.
+to the React frontend using FASHN.ai Product-to-Model API.
 
 Endpoints:
-- POST /api/analyze - Step 1: Vision analysis/Prompt creation
-- POST /api/generate/preview - Step 2: Preview generation (fashn.ai 1k)
-- POST /api/generate/ultra - Step 3: Ultra quality (fashn.ai 4k)
+- POST /api/analyze - Step 1: Product category detection
+- POST /api/generate/preview - Step 2: Preview generation (FASHN.ai)
+- POST /api/generate/ultra - Step 3: Ultra quality generation (FASHN.ai)
 - POST /api/generate - Combined pipeline (analyze + generate)
 """
 
@@ -76,7 +76,7 @@ class GenerateRequest(BaseModel):
     prompt: str
     aspect_ratio: str = "3:4"
     negative_prompt: str = ""
-    image_base64: Optional[str] = None # Added for fashn.ai support
+    image_base64: Optional[str] = None  # Optional: for API compatibility
 
 
 class GenerateResponse(BaseModel):
@@ -153,9 +153,9 @@ async def analyze_image(request: AnalyzeRequest):
 @app.post("/api/generate/preview", response_model=GenerateResponse)
 async def generate_preview_image(request: GenerateRequest):
     """
-    Step 2: Generate preview image using Fashn.ai (1k).
+    Step 2: Generate preview image using Vertex AI Imagen.
     
-    Requires 'image_base64' in request now.
+    Note: image_base64 is optional and used for API compatibility.
     """
     try:
         result = await generate_preview(
@@ -179,7 +179,7 @@ async def generate_preview_image(request: GenerateRequest):
 @app.post("/api/generate/ultra", response_model=GenerateResponse)
 async def generate_ultra_image(request: GenerateRequest):
     """
-    Step 3: Generate ultra-quality image using Fashn.ai (4k).
+    Step 3: Generate ultra-quality image using Vertex AI Imagen with enhanced prompts.
     """
     try:
         result = await generate_ultra_quality(
@@ -273,7 +273,7 @@ async def startup_event():
     """Initialize backend services"""
     logger.info("Starting VirtualOutfit AI Backend...")
     initialize_services()
-    logger.info("Backend ready with Fashn.ai provider and Vertex AI fallback!")
+    logger.info("Backend ready with FASHN.ai Product-to-Model!")
 
 
 # ============================================

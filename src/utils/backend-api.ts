@@ -33,6 +33,7 @@ interface GenerateRequest {
     prompt: string;
     aspect_ratio?: string;
     negative_prompt?: string;
+    image_base64?: string; // Optional but needed for FASHN.ai
 }
 
 interface GenerateResponse {
@@ -97,6 +98,7 @@ export async function generatePreview(params: GenerateRequest): Promise<Generate
             prompt: params.prompt,
             aspect_ratio: params.aspect_ratio || '3:4',
             negative_prompt: params.negative_prompt || '',
+            image_base64: params.image_base64,
         }),
     });
 
@@ -121,6 +123,7 @@ export async function generateUltra(params: GenerateRequest): Promise<GenerateRe
             prompt: params.prompt,
             aspect_ratio: params.aspect_ratio || '3:4',
             negative_prompt: params.negative_prompt || '',
+            image_base64: params.image_base64,
         }),
     });
 

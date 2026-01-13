@@ -1,15 +1,32 @@
+"""
+FASHN.ai Provider - Product to Model API Integration
+
+This module handles the FASHN.ai API for generating on-model images from product photos.
+API Documentation: https://docs.fashn.ai/
+
+The Product-to-Model endpoint generates realistic images of AI models wearing clothing
+from flat-lay or ghost mannequin product photos.
+"""
+
 import os
 import httpx
-import time
+import asyncio
 import logging
-from typing import Optional, Dict, Any, List
+import base64
+from typing import Optional, Dict, Any
 
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class FashnProvider:
-    """
-    Provider for fashn.ai image generation API.
-    """
+    """FASHN.ai API Provider for product-to-model image generation."""
     
     BASE_URL = "https://api.fashn.ai/v1"
     
@@ -20,129 +37,161 @@ class FashnProvider:
     
     async def run_product_to_model(
         self,
-        product_image: str,
-        model_image: Optional[str] = None,
-        prompt: Optional[str] = None,
-        negative_prompt: Optional[str] = None,
-        aspect_ratio: str = "3:4",
-        resolution: str = "1k",
-        num_images: int = 1,
-        output_format: str = "png"
+        product_image_url: str = None,
+        product_image_base64: str = None,
+        model_image_url: str = None,
+        model_image_base64: str = None,
+        prompt: str = "", # Added prompt
+        category: str = "tops", # Deprecated but kept in signature for compatibility
+        mode: str = "generate",  # 'generate' or 'try-on'
+        num_samples: int = 1,
+        restore_clothes: bool = False, # Deprecated
+        adjust_hands: bool = False, # Deprecated
+        restore_background: bool = False, # Deprecated
+        garment_photo_type: str = "auto", # Deprecated
+        long_top: bool = False # Deprecated
     ) -> Dict[str, Any]:
         """
-        Run the product-to-model generation.
-        
-        Args:
-            product_image: URL or base64 of the product image.
-            model_image: URL or base64 of the model image (optional).
-            prompt: Text prompt for generation.
-            negative_prompt: Text prompt for what to avoid.
-            aspect_ratio: Desired aspect ratio (e.g., "3:4").
-            resolution: "1k" (faster/cheaper) or "4k" (better quality).
-            num_images: Number of images to generate.
-            output_format: "png" or "jpeg".
-            
-        Returns:
-            The raw API response from the status endpoint after completion.
+        Run the Product-to-Model generation using new API format.
         """
         if not self.api_key:
             raise ValueError("FASHN_API_KEY is not configured")
-            
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
-        }
         
-        # Prepare payload
-        inputs = {
-            "product_image": product_image,
-            "output_format": output_format,
-            "return_base64": True, # Always get base64 for our app
-            "resolution": resolution
-        }
-        
-        if model_image:
-            inputs["model_image"] = model_image
+        # Build inputs dictionary for new API schema
+        inputs = {}
         
         if prompt:
             inputs["prompt"] = prompt
-            
-        if aspect_ratio:
-            inputs["aspect_ratio"] = aspect_ratio
-            
-        # seed is not strictly required, letting it be random usually better for variety
-        # face_reference options could be added later
         
+        # Add product image
+        if product_image_base64:
+            inputs["product_image"] = f"data:image/jpeg;base64,{product_image_base64}"
+        elif product_image_url:
+            inputs["product_image"] = product_image_url
+        else:
+            raise ValueError("Either product_image_url or product_image_base64 is required")
+        
+        # Add model image for try-on mode
+        if mode == "try-on":
+            if model_image_base64:
+                inputs["model_image"] = f"data:image/jpeg;base64,{model_image_base64}"
+            elif model_image_url:
+                inputs["model_image"] = model_image_url
+                
+            # If try-on mode is clearer with a specific model name, we could switch here.
+            # But we stick to product-to-model as it covers both according to docs.
+        
+        # Construct full payload
         payload = {
             "model_name": "product-to-model",
             "inputs": inputs
         }
         
-        # 1. Start generation
-        async with httpx.AsyncClient() as client:
-            try:
-                logger.info(f"Starting Fashn.ai generation (res={resolution})...")
-                response = await client.post(
-                    f"{self.BASE_URL}/run",
-                    json=payload,
-                    headers=headers,
-                    timeout=30.0
-                )
-                response.raise_for_status()
-                data = response.json()
-                prediction_id = data.get("id")
-                
-                if not prediction_id:
-                    raise ValueError(f"No prediction ID returned: {data}")
-                
-                logger.info(f"Fashn.ai job started: {prediction_id}")
-                
-            except httpx.HTTPError as e:
-                logger.error(f"Fashn.ai API request failed: {str(e)}")
-                if hasattr(e, 'response') and e.response:
-                    logger.error(f"Response: {e.response.text}")
-                raise
-        
-        # 2. Poll for results
-        return await self._poll_status(prediction_id, headers)
-
-    async def _poll_status(self, prediction_id: str, headers: Dict[str, str], max_attempts: int = 60) -> Dict[str, Any]:
-        """Poll the status endpoint until completion or timeout."""
-        
-        url = f"{self.BASE_URL}/status/{prediction_id}"
+        logger.info(f"Starting FASHN.ai Product-to-Model generation (model: product-to-model)")
         
         async with httpx.AsyncClient() as client:
-            for attempt in range(max_attempts):
-                try:
-                    response = await client.get(url, headers=headers, timeout=10.0)
-                    response.raise_for_status()
-                    data = response.json()
-                    
-                    status = data.get("status")
-                    
-                    if status == "completed":
-                        logger.info(f"Fashn.ai job {prediction_id} completed successfully.")
-                        return data
-                    
-                    elif status == "failed":
-                        error_msg = data.get("error", {}).get("message", "Unknown error")
-                        logger.error(f"Fashn.ai job {prediction_id} failed: {error_msg}")
-                        raise ValueError(f"Generation failed: {error_msg}")
-                        
-                    elif status == "canceled":
-                        raise ValueError(f"Generation canceled: {prediction_id}")
-                    
-                    # Wait before next poll (backoff slightly)
-                    delay = 1.0 if attempt < 5 else 2.0
-                    await self._sleep(delay)
-                    
-                except httpx.HTTPError as e:
-                    logger.warning(f"Polling error (attempt {attempt+1}): {str(e)}")
-                    await self._sleep(2.0)
+            response = await client.post(
+                f"{self.BASE_URL}/run",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                },
+                json=payload,
+                timeout=60.0
+            )
             
-            raise TimeoutError(f"Generation timed out after {max_attempts} polls")
+            if response.status_code != 200:
+                error_text = response.text
+                logger.error(f"FASHN.ai run error: {response.status_code} - {error_text}")
+                raise ValueError(f"FASHN.ai API error: {error_text}")
+            
+            data = response.json()
+            logger.info(f"FASHN.ai job started: {data.get('id')}")
+            return data
+    
+    async def get_status(self, prediction_id: str) -> Dict[str, Any]:
+        """
+        Get the status of a prediction.
+        
+        Args:
+            prediction_id: The ID returned from run_product_to_model
+        
+        Returns:
+            Dict with status and output images when complete
+        """
+        if not self.api_key:
+            raise ValueError("FASHN_API_KEY is not configured")
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.BASE_URL}/status/{prediction_id}",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}"
+                },
+                timeout=30.0
+            )
+            
+            if response.status_code != 200:
+                error_text = response.text
+                logger.error(f"FASHN.ai status error: {response.status_code} - {error_text}")
+                raise ValueError(f"FASHN.ai status error: {error_text}")
+            
+            return response.json()
+    
+    async def generate_and_wait(
+        self,
+        product_image_base64: str,
+        prompt: str = "",
+        category: str = "tops",
+        mode: str = "generate",
+        timeout_seconds: int = 120,
+        poll_interval: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Generate image and wait for completion.
+        """
+        # Start the generation
+        result = await self.run_product_to_model(
+            product_image_base64=product_image_base64,
+            prompt=prompt,
+            category=category,
+            mode=mode
+        )
+        
+        prediction_id = result.get("id")
+        if not prediction_id:
+            raise ValueError("No prediction ID returned from FASHN.ai")
+        
+        logger.info(f"Waiting for FASHN.ai generation to complete (ID: {prediction_id})")
+        
+        # Poll for completion
+        elapsed = 0
+        while elapsed < timeout_seconds:
+            status = await self.get_status(prediction_id)
+            state = status.get("status")
+            
+            if state == "completed":
+                logger.info("FASHN.ai generation completed successfully")
+                return status
+            elif state == "failed":
+                error_msg = status.get("error", "Unknown error")
+                logger.error(f"FASHN.ai generation failed: {error_msg}")
+                raise ValueError(f"FASHN.ai generation failed: {error_msg}")
+            
+            logger.info(f"FASHN.ai status: {state}, waiting...")
+            await asyncio.sleep(poll_interval)
+            elapsed += poll_interval
+        
+        raise TimeoutError(f"FASHN.ai generation timed out after {timeout_seconds} seconds")
 
-    async def _sleep(self, seconds: float):
-        """Async sleep helper."""
-        import asyncio
-        await asyncio.sleep(seconds)
+
+# Singleton instance
+_fashn_provider: Optional[FashnProvider] = None
+
+
+def get_fashn_provider() -> FashnProvider:
+    """Get or create the FASHN provider instance."""
+    global _fashn_provider
+    if _fashn_provider is None:
+        _fashn_provider = FashnProvider()
+    return _fashn_provider

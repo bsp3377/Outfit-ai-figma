@@ -3,9 +3,15 @@ node_modules
 dist
 build
 .env
+.env.local
+
 
 # Python
 backend/venv
 backend/__pycache__
 __pycache__
 *.pyc
+
+# Google Cloud credentials
+service-account.json
+backend/service-account.json
