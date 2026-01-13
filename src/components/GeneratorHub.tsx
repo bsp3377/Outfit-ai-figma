@@ -12,6 +12,7 @@ import { GenerationProgress } from './ui/GenerationProgress';
 import BlockLoader from './ui/block-loader';
 import { useCredits } from '../hooks/useCredits';
 import { overlayLogo, detectLogoPosition, LogoPlacement } from '../utils/logo-overlay';
+import { processUploadedImage, isHeicFile, getSupportedImageTypes } from '../utils/image-converter';
 
 type TabType = 'fashion' | 'jewellery' | 'flatlay';
 type GenerationStep = 'uploading' | 'prompt' | 'generating' | 'saving' | null;
@@ -137,31 +138,45 @@ export function GeneratorHub() {
   // Generated images (starts empty, populated after AI generation)
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (uploadedFiles.length + files.length > 5) {
       toast.error('Maximum 5 images allowed');
       return;
     }
 
-    files.forEach(file => {
+    // Show processing toast for HEIC files
+    const hasHeicFiles = files.some(f => isHeicFile(f));
+    const toastId = hasHeicFiles ? toast.loading('Converting HEIC images...') : null;
+
+    for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
         toast.error(`${file.name} is too large. Maximum size is 10MB`);
-        return;
+        continue;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      try {
+        // Use the image converter for proper HEIC/PNG handling
+        const processed = await processUploadedImage(file);
+
         const newFile: UploadedFile = {
           id: Date.now().toString() + Math.random(),
-          url: reader.result as string,
-          name: file.name,
-          size: file.size,
+          url: processed.url,
+          name: processed.name,
+          size: processed.size,
         };
         setUploadedFiles(prev => [...prev, newFile]);
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (error) {
+        console.error(`Failed to process ${file.name}:`, error);
+        toast.error(`Failed to load ${file.name}`, {
+          description: error instanceof Error ? error.message : 'Image format not supported'
+        });
+      }
+    }
+
+    if (toastId) {
+      toast.dismiss(toastId);
+    }
     toast.success('Image(s) uploaded successfully!');
   };
 
@@ -170,7 +185,7 @@ export function GeneratorHub() {
     toast.success('Image removed');
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -179,18 +194,29 @@ export function GeneratorHub() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
+    // Show processing toast for HEIC files
+    const toastId = isHeicFile(file) ? toast.loading('Converting HEIC image...') : null;
+
+    try {
+      const processed = await processUploadedImage(file);
+
       const newFile: UploadedFile = {
         id: Date.now().toString(),
-        url: reader.result as string,
-        name: file.name,
-        size: file.size,
+        url: processed.url,
+        name: processed.name,
+        size: processed.size,
       };
       setLogoFile(newFile);
+
+      if (toastId) toast.dismiss(toastId);
       toast.success('Logo uploaded successfully!');
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      if (toastId) toast.dismiss(toastId);
+      console.error('Logo upload failed:', error);
+      toast.error(`Failed to load logo: ${file.name}`, {
+        description: error instanceof Error ? error.message : 'Image format not supported'
+      });
+    }
   };
 
   const removeLogo = () => {
@@ -198,7 +224,7 @@ export function GeneratorHub() {
     toast.success('Logo removed');
   };
 
-  const handleInspiredTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInspiredTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -207,18 +233,29 @@ export function GeneratorHub() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
+    // Show processing toast for HEIC files
+    const toastId = isHeicFile(file) ? toast.loading('Converting HEIC image...') : null;
+
+    try {
+      const processed = await processUploadedImage(file);
+
       const newFile: UploadedFile = {
         id: Date.now().toString(),
-        url: reader.result as string,
-        name: file.name,
-        size: file.size,
+        url: processed.url,
+        name: processed.name,
+        size: processed.size,
       };
       setInspiredTemplateFile(newFile);
+
+      if (toastId) toast.dismiss(toastId);
       toast.success('Inspired template uploaded successfully!');
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      if (toastId) toast.dismiss(toastId);
+      console.error('Template upload failed:', error);
+      toast.error(`Failed to load template: ${file.name}`, {
+        description: error instanceof Error ? error.message : 'Image format not supported'
+      });
+    }
   };
 
   const removeInspiredTemplate = () => {
@@ -227,31 +264,44 @@ export function GeneratorHub() {
   };
 
   // Detail shots upload handlers (for texture, logo, button design references)
-  const handleDetailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDetailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (detailFiles.length + files.length > 5) {
       toast.error('Maximum 5 detail images allowed');
       return;
     }
 
-    files.forEach(file => {
+    // Show processing toast for HEIC files
+    const hasHeicFiles = files.some(f => isHeicFile(f));
+    const toastId = hasHeicFiles ? toast.loading('Converting HEIC images...') : null;
+
+    for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
         toast.error(`${file.name} is too large. Maximum size is 10MB`);
-        return;
+        continue;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      try {
+        const processed = await processUploadedImage(file);
+
         const newFile: UploadedFile = {
           id: Date.now().toString() + Math.random(),
-          url: reader.result as string,
-          name: file.name,
-          size: file.size,
+          url: processed.url,
+          name: processed.name,
+          size: processed.size,
         };
         setDetailFiles(prev => [...prev, newFile]);
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (error) {
+        console.error(`Failed to process detail ${file.name}:`, error);
+        toast.error(`Failed to load ${file.name}`, {
+          description: error instanceof Error ? error.message : 'Image format not supported'
+        });
+      }
+    }
+
+    if (toastId) {
+      toast.dismiss(toastId);
+    }
     toast.success('Detail image(s) uploaded!');
   };
 
@@ -1310,7 +1360,7 @@ export function GeneratorHub() {
             <label className="block">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
                 multiple
                 onChange={handleImageUpload}
                 className="hidden"
@@ -1321,7 +1371,7 @@ export function GeneratorHub() {
                   Click to upload or drag and drop
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-500">
-                  PNG, JPG or WEBP (max. 10MB per file)
+                  PNG, JPG, WEBP, HEIC (max. 10MB per file)
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-600 mt-2">
                   Upload up to 5 images
@@ -1365,7 +1415,7 @@ export function GeneratorHub() {
                 <label className="block">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
                     multiple
                     onChange={handleImageUpload}
                     className="hidden"
@@ -1412,7 +1462,7 @@ export function GeneratorHub() {
               <label className="block">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
                   multiple
                   onChange={handleDetailUpload}
                   className="hidden"
@@ -1458,7 +1508,7 @@ export function GeneratorHub() {
                 <label className="block">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
                     multiple
                     onChange={handleDetailUpload}
                     className="hidden"
@@ -2100,7 +2150,7 @@ export function GeneratorHub() {
                   <label className="block">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
                       onChange={handleInspiredTemplateUpload}
                       className="hidden"
                     />
