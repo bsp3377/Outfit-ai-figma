@@ -345,6 +345,22 @@ export function GeneratorHub() {
         if (file.url.startsWith('data:')) {
           const matches = file.url.match(/^data:([^;]+);base64,(.+)$/);
           if (matches) {
+            // Validate image dimensions
+            const img = new Image();
+            img.src = file.url;
+            await new Promise((resolve) => {
+              img.onload = resolve;
+            });
+
+            if (img.width < 128 || img.height < 128) {
+              toast.error(`Image "${file.name}" is too small`, {
+                description: 'Product images must be at least 128x128 pixels.'
+              });
+              setIsGenerating(false);
+              setGenerationStep('idle');
+              return;
+            }
+
             productImages.push({
               mimeType: matches[1],
               base64: matches[2],
