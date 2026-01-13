@@ -140,6 +140,8 @@ export function GeneratorHub() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
     if (uploadedFiles.length + files.length > 5) {
       toast.error('Maximum 5 images allowed');
       return;
@@ -149,6 +151,7 @@ export function GeneratorHub() {
     const hasHeicFiles = files.some(f => isHeicFile(f));
     const toastId = hasHeicFiles ? toast.loading('Converting HEIC images...') : null;
 
+    let successCount = 0;
     for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
         toast.error(`${file.name} is too large. Maximum size is 10MB`);
@@ -166,6 +169,7 @@ export function GeneratorHub() {
           size: processed.size,
         };
         setUploadedFiles(prev => [...prev, newFile]);
+        successCount++;
       } catch (error) {
         console.error(`Failed to process ${file.name}:`, error);
         toast.error(`Failed to load ${file.name}`, {
@@ -177,8 +181,15 @@ export function GeneratorHub() {
     if (toastId) {
       toast.dismiss(toastId);
     }
-    toast.success('Image(s) uploaded successfully!');
+
+    if (successCount > 0) {
+      toast.success(`${successCount} image(s) uploaded successfully!`);
+    }
+
+    // Reset input to allow re-uploading same files
+    e.target.value = '';
   };
+
 
   const removeFile = (id: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== id));
