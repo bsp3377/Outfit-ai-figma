@@ -144,11 +144,13 @@ export async function detectLogoPosition(
         };
 
         // If hint is explicitly front (center)
-        if (placementHint === 'center') {
-            placement.x = 0.5;
-            placement.y = 0.4;
-            placement.width = 0.15;
+        if (placementHint === 'center' || placementHint === 'front') {
+            placement.x = 0.5;   // Center
+            placement.y = 0.42;  // Center Chest
+            placement.width = 0.18; // Larger visible logo (18% width)
         }
+
+
 
         // Adjust for different genders/ages if provided
         if (genderHint?.toLowerCase().includes('infant') || genderHint?.toLowerCase().includes('baby')) {
