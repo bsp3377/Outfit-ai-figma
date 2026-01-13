@@ -104,8 +104,17 @@ export async function generatePreview(params: GenerateRequest): Promise<Generate
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || `Preview generation failed: ${response.statusText}`);
+        let errorDetails = '';
+        try {
+            const error = await response.json();
+            errorDetails = error.detail;
+        } catch {
+            // If JSON parsing fails, try reading as text (e.g. for Vercel timeouts/500s)
+            const text = await response.text().catch(() => '');
+            errorDetails = text.substring(0, 100); // Limit length
+        }
+
+        throw new Error(errorDetails || `Preview generation failed (${response.status}): ${response.statusText || 'Unknown error'}`);
     }
 
     return response.json();
