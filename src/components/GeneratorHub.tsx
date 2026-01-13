@@ -437,15 +437,21 @@ export function GeneratorHub() {
         file.name.toLowerCase().includes('mark')
       );
 
-      if (applyLogoOverlay && hasLogoDetailShot && detailFiles.length > 0) {
+      // Apply logo overlay if enabled
+      let logoUrlToApply = '';
+      if (formData.logoEnabled && logoFile) {
+        logoUrlToApply = logoFile.url;
+      } else if (applyLogoOverlay && hasLogoDetailShot && detailFiles.length > 0) {
+        const logoDetailShot = detailFiles.find(file =>
+          file.name.toLowerCase().includes('logo') ||
+          file.name.toLowerCase().includes('brand')
+        ) || detailFiles[0];
+        logoUrlToApply = logoDetailShot.url;
+      }
+
+      if (logoUrlToApply) {
         try {
           console.log('🎨 Applying logo overlay for pixel-perfect accuracy...');
-
-          // Use the first detail shot that looks like a logo, or the first detail shot
-          const logoDetailShot = detailFiles.find(file =>
-            file.name.toLowerCase().includes('logo') ||
-            file.name.toLowerCase().includes('brand')
-          ) || detailFiles[0];
 
           // Determine placement
           let placement: LogoPlacement;
@@ -453,7 +459,8 @@ export function GeneratorHub() {
             placement = await detectLogoPosition(
               finalImageUrl,
               activeTab,
-              formData.gender
+              formData.gender,
+              formData.logoPlacement
             );
             console.log(`   - Auto-detected logo position: x=${placement.x.toFixed(2)}, y=${placement.y.toFixed(2)}`);
           } else {
@@ -464,9 +471,11 @@ export function GeneratorHub() {
           // Apply the overlay
           finalImageUrl = await overlayLogo({
             generatedImage: finalImageUrl,
-            logoImage: logoDetailShot.url,
+            logoImage: logoUrlToApply,
             placement
           });
+
+
 
           console.log('✅ Logo overlay applied successfully!');
         } catch (error) {

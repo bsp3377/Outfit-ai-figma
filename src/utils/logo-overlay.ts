@@ -107,7 +107,8 @@ export async function overlayLogo(params: OverlayParams): Promise<string> {
 export async function detectLogoPosition(
     generatedImage: string,
     productType: 'fashion' | 'jewellery' | 'flatlay',
-    genderHint?: string
+    genderHint?: string,
+    placementHint?: string
 ): Promise<LogoPlacement> {
     // Load image to get dimensions for aspect ratio consideration
     const img = await loadImage(generatedImage);
@@ -115,6 +116,18 @@ export async function detectLogoPosition(
 
     // Default placement based on product type
     let placement: LogoPlacement;
+
+    // Override if placement hint is 'background'
+    if (placementHint === 'background') {
+        return {
+            x: 0.85,              // Bottom right corner
+            y: 0.90,
+            width: 0.12,
+            rotation: 0,
+            opacity: 0.85,
+            blendMode: 'multiply'
+        };
+    }
 
     if (productType === 'fashion') {
         // Fashion/Apparel: Logo typically on chest area
@@ -129,6 +142,13 @@ export async function detectLogoPosition(
             opacity: 1.0,
             blendMode: 'normal'
         };
+
+        // If hint is explicitly front (center)
+        if (placementHint === 'center') {
+            placement.x = 0.5;
+            placement.y = 0.4;
+            placement.width = 0.15;
+        }
 
         // Adjust for different genders/ages if provided
         if (genderHint?.toLowerCase().includes('infant') || genderHint?.toLowerCase().includes('baby')) {
