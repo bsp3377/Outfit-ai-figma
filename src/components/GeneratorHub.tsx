@@ -446,6 +446,7 @@ export function GeneratorHub() {
         const parts = [productDescription];
 
         if (activeTab === 'fashion') {
+          if (formData.age) parts.push(`${formData.age} years old`);
           if (formData.gender) parts.push(`${formData.gender} model`);
           if (formData.ethnicity) parts.push(`${formData.ethnicity} ethnicity`);
           if (formData.hairstyle) parts.push(`${formData.hairstyle.replace(/-/g, ' ')} hairstyle`);
